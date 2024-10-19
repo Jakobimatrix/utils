@@ -1,5 +1,8 @@
 #pragma once
 
+#include <typeinfo>
+#include <cxxabi.h>
+
 #include <utils/searchAndReplace.hpp>
 
 std::string demangle(const char* name) {
