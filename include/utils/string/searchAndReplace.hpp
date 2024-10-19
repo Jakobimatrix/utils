@@ -1,3 +1,8 @@
+/**
+ * @file searchAndReplace.hpp
+ * @brief Contains templates to perform search and replace action on std::string
+ */
+
 #pragma once
 
 #include <string>

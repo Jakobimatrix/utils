@@ -1,9 +1,16 @@
+/**
+ * @file demangle.hpp
+ * @brief For debuging template types
+ */
+
 #pragma once
 
 #include <typeinfo>
 #include <cxxabi.h>
 
 #include <utils/searchAndReplace.hpp>
+
+namespace debug{
 
 std::string demangle(const char* name) {
   int status = -1;
@@ -34,4 +41,6 @@ void printVariantTypes() {
     printType(CurrentType{});
     printVariantTypes<Variant, Index + 1>();
   }
+}
+
 }
