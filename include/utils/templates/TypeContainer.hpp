@@ -1,5 +1,5 @@
 /**
- * @file variant.hpp
+ * @file TypeContainer.hpp
  * @brief Contains template to join multiple std::variant/std::tuple.
  * Contains template to generate a type container (std::variant/tuple) of std::map<Ti,Tj>/pair<Ti,Tj>... all possible combinations.
  * Contains template to generate type container (std::variant/tuple) of all std::container, given the base types.
@@ -9,7 +9,6 @@
 
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 #pragma once
 
