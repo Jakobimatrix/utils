@@ -12,7 +12,7 @@
 #include <variant>
 #include <vector>
 
-// Include your TypeContainerCreater header
+//
 #include <utils/templates/TypeContainer.hpp>
 
 namespace util {
@@ -83,6 +83,8 @@ BOOST_AUTO_TEST_CASE(create_variants_test) {
   std::queue<int> sampleQueue;
   std::stack<float> sampleStack;
 
+  double sampleDouble(42.24);
+
   sampleQueue.push(1);
   sampleQueue.push(2);
   sampleStack.push(10.1f);
@@ -92,10 +94,12 @@ BOOST_AUTO_TEST_CASE(create_variants_test) {
   variants2.push_back(&sampleMultimap);
   variants2.push_back(&sampleQueue);
   variants2.push_back(&sampleStack);
+  variants2.push_back(&sampleDouble);
 
   // Verify storage and retrieval
   BOOST_TEST(*(std::get<std::map<int, double>*>(variants2[0])) == sampleMap2);
   BOOST_TEST(*(std::get<std::multimap<int, float>*>(variants2[1])) == sampleMultimap);
+  BOOST_TEST(*(std::get<double*>(variants2[4])) == sampleDouble);
 
   // Special checks for queue and stack (since direct equality doesn't work with std::queue/std::stack)
   BOOST_TEST(std::get<std::queue<int>*>(variants2[2])->front() == 1);
@@ -107,6 +111,29 @@ BOOST_AUTO_TEST_CASE(create_variants_test) {
   MyVariant_3 emptyVariant = std::vector<int>{};
 
   BOOST_TEST(std::get<std::vector<int>>(emptyVariant).empty());
+}
+
+BOOST_AUTO_TEST_CASE(create_tuple_test) {
+  using MyTuple_0 =
+      TypeContainerCreater<std::tuple, false, int, double, float>::SingleTypeStl<stdVector>::type;
+
+  // Sample values to store in the tuple
+  std::vector<int> sampleVectorI = {
+      1,
+      2,
+      3,
+  };
+  std::vector<double> sampleVectorD = {1., 2., 3.};
+  std::vector<float> sampleVectorF = {1.f, 2.f, 3.f};
+
+
+  // Create a tuple containing different types
+  MyTuple_0 myTuple = std::make_tuple(sampleVectorI, sampleVectorD, sampleVectorF);
+
+  // Verify retrieval of values from the tuple
+  BOOST_TEST(std::get<0>(myTuple) == sampleVectorI);
+  BOOST_TEST(std::get<1>(myTuple) == sampleVectorD);
+  BOOST_TEST(std::get<2>(myTuple) == sampleVectorF);
 }
 
 }  // namespace util
