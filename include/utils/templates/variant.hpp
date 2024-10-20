@@ -113,11 +113,11 @@ struct generateAllPairedTemplateVariants {
 };
 
 
-// using MyVariant_0 = BaseTypeContainer<std::variant, false, int, double, float>::SingleTypeStl<std::set, std::vector>::PairedTypeStl<std::pair>::type;
-// using MyVariant_1 = BaseTypeContainer<std::tuple, false, int, double, float>::PairedTypeStl<std::map>::SingleTypeStl<std::list>::typeWithBase;
-// using MyVariant_2 = BaseTypeContainer<std::variant, true, int, double, float, unsigned long>::PairedTypeStl<std::unordered_map>::type;
+// using MyVariant_0 = TypeContainerCreater<std::variant, false, int, double, float>::SingleTypeStl<std::set, std::vector>::PairedTypeStl<std::pair>::type;
+// using MyVariant_1 = TypeContainerCreater<std::tuple, false, int, double, float>::PairedTypeStl<std::map>::SingleTypeStl<std::list>::typeWithBase;
+// using MyVariant_2 = TypeContainerCreater<std::variant, true, int, double, float, unsigned long>::PairedTypeStl<std::unordered_map>::type;
 template <template <typename...> class TypeContainer, bool use_pointer, typename... BaseTypes>
-struct BaseTypeContainer {
+struct TypeContainerCreater {
   using BaseVariantsType = TypeContainer<PointerWrapper_t<BaseTypes, use_pointer>...>;
 
   template <template <typename> class... StlContainers>
