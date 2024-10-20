@@ -140,7 +140,7 @@ struct TypeContainerCreater {
 
   template <template <typename, typename> class StlContainer_Paired>
   struct PairedStlTypeContainer<StlContainer_Paired> {
-    using type =
+    using type = typename
         generateAllPairedTemplateVariants<TypeContainer, StlContainer_Paired, use_pointer, BaseTypes...>::type;
   };
 
