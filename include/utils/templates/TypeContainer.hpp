@@ -10,6 +10,16 @@
 #include <type_traits>
 #include <utility>
 
+#include<map>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <queue>
+#include <vector>
+#include <list>
+#include <stack>
+#include <unordered_set>
+
 #pragma once
 
 // joining variant types: https://stackoverflow.com/questions/64042612/join-the-types-of-stdvarianta-b-c-and-stdvariantx-y-z
@@ -95,10 +105,61 @@ struct generateTemplateVariants<TypeContainer, TemplateType, use_pointer, T1, T2
   using type = template_concat_t<VariantsForT1, VariantsForRest>;
 };
 
+/*
+Wrapper Explanation:
+  In C++, most STL containers like std::set, std::map, etc., have default template parameters, such as the comparator for std::set (std::less<T>) and the allocator for most containers.
+  GCC allows you to pass the container without explicitly providing all template parameters, but Clang requires that the template signature matches exactly.
+  To avoid this discrepancy, you can define wrappers that explicitly match the expected number of template parameters.
+*/
+template <typename T>
+using stdSet = std::set<T>;
+
+template <typename T>
+using stdVector = std::vector<T>;
+
+template <typename T>
+using stdList = std::list<T>;
+
+template <typename T>
+using stdDeque = std::deque<T>;
+
+template <typename T>
+using stdQueue = std::queue<T>;
+
+template <typename T>
+using stdPriorityQueue = std::priority_queue<T>;
+
+template <typename T>
+using stdStack = std::stack<T>;
+
+template <typename T>
+using stdUnorderedSet = std::unordered_set<T>;
+
+template <typename T, typename U>
+using stdUnorderedMap = std::unordered_map<T, U>;
+
+template <typename T, typename U>
+using stdMap = std::map<T, U>;
+
+template <typename T, typename U>
+using stdMultimap = std::multimap<T, U>;
+
+template <typename T, typename U>
+using stdUnorderedMultimap = std::unordered_multimap<T, U>;
+
+template <typename T>
+using stdMultiset = std::multiset<T>;
+
+template <typename T>
+using stdUnorderedMultiset = std::unordered_multiset<T>;
+
+template <typename T, typename U>
+using stdPair = std::pair<T, U>;
+
 /*Generate combinations of TemplateType applied to all pairs of types, with optional pointer wrapping
 // Example usage with std::pair, std::map, without pointers
-// using DataVariantPair = generateAllPairedTemplateVariants<std::variant, std::pair, false, bool, int, unsigned int, float, double, std::string>::type;
-// using DataTupleMap = generateAllPairedTemplateVariants<std::tuple, std::map, false, bool, int, unsigned int, float, double, std::string>::type;
+// using DataVariantPair = generateAllPairedTemplateVariants<std::variant, stdPair, false, bool, int, unsigned int, float, double, std::string>::type;
+// using DataTupleMap = generateAllPairedTemplateVariants<std::tuple, stdMap, false, bool, int, unsigned int, float, double, std::string>::type;
 // Example usage with std::pair, with pointers
 // using DataVariantPairPointer = generateAllPairedTemplateVariants<std::variant, std::pair, true, bool, int, unsigned int, float, double, std::string>::type;
 */

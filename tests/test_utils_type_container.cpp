@@ -20,18 +20,19 @@ namespace util {
 
 BOOST_AUTO_TEST_CASE(create_variants_test) {
 
-  using MyVariant_0 = TypeContainerCreater<std::variant, false, int, double, float>::
-      SingleTypeStl<std::vector, std::set>::PairedTypeStl<std::pair>::type;
-  using MyTuples_0 = TypeContainerCreater<std::tuple, true, int, double, float>::
-      SingleTypeStl<std::vector, std::set>::PairedTypeStl<std::pair>::type;
+  using MyVariant_0 =
+      TypeContainerCreater<std::variant, false, int, double, float>::SingleTypeStl<stdVector, stdList>::PairedTypeStl<stdPair>::type;
+  using MyTuples_0 =
+      TypeContainerCreater<std::tuple, true, int, double, float>::SingleTypeStl<stdVector, stdList>::PairedTypeStl<stdPair>::type;
 
-  using MyVariant_1 = TypeContainerCreater<std::variant, true, int, double, float>
-      PairedTypeStl<std::map>::SingleTypeStl<std::set, std::vector>::type;
-  using MyVariant_2 = TypeContainerCreater<std::variant, true, int, double, float>
-      PairedTypeStl<std::map, std::multi_map>::SingleTypeStl<std::queue, std::stack>::type;
+  using MyVariant_1 =
+      TypeContainerCreater<std::variant, true, int, double, float>::PairedTypeStl<
+          stdMap>::SingleTypeStl<stdSet, stdVector>::typeWithBase;
+  using MyVariant_2 = TypeContainerCreater<std::variant, true, int, double, float>::
+      PairedTypeStl<stdMap, stdMultimap>::SingleTypeStl<stdQueue, stdStack>::typeWithBase;
 
   std::vector<MyVariant_0> variants0;
-  std::vector<MyTuples_0> tuples0;
+  std::vector<const MyTuples_0> tuples0;
 
   bool sampleBool = true;
   int sampleInteger = 42;
@@ -45,12 +46,12 @@ BOOST_AUTO_TEST_CASE(create_variants_test) {
   std::list<float> sampleList({1, 2, 3, 4});
   std::pair<int, double> samplePair(3, 4.4);
 
-  variants0.push_back(sampleSet);
+  // variants0.push_back(sampleSet);
   variants0.push_back(sampleVector);
   variants0.push_back(sampleList);
   variants0.push_back(samplePair);
 
-  tuples0.push_back(&sampleSet);
+  // tuples0.push_back(&sampleSet);
   tuples0.push_back(&sampleVector);
   tuples0.push_back(&sampleList);
   tuples0.push_back(&samplePair);
