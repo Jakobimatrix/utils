@@ -12,14 +12,14 @@ namespace util {
  * If the path is a directory with a trailing slash, it returns the directory name.
  *
  * @param path The filesystem path from which to extract the filename or directory name.
- * @return std::string The name of the file or the directory at the end of the path.
+ * @return std::wstring The name of the file or the directory at the end of the path.
  */
-std::string inline getLastPathComponent(const std::filesystem::path& path) {
+std::wstring inline getLastPathComponent(const std::filesystem::path& path) {
   // Use filename() directly, as it will handle cases with and without trailing slashes
   if (path.has_filename() || std::filesystem::is_regular_file(path)) {
-    return path.filename().string();
+    return path.filename().wstring();
   }
-  return path.parent_path().filename().string();  // Directory path with a trailing slash
+  return path.parent_path().filename().wstring();  // Directory path with a trailing slash
 }
 
 /**
@@ -29,9 +29,9 @@ std::string inline getLastPathComponent(const std::filesystem::path& path) {
  * the last  component of the path.
  *
  * @param entry The filesystem directory entry from which to extract the filename or directory name.
- * @return std::string The name of the file or the directory at the end of the path in the entry.
+ * @return std::wstring The name of the file or the directory at the end of the path in the entry.
  */
-std::string inline getLastPathComponent(const std::filesystem::directory_entry& entry) {
+std::wstring inline getLastPathComponent(const std::filesystem::directory_entry& entry) {
   return getLastPathComponent(entry.path());
 }
 
