@@ -6,7 +6,7 @@
  * that returns the memory used by the current process in bytes.
  *
  * ### Supported Platforms
- * - **Windows**: Uses `GetProcessMemoryInfo` from the Windows API.
+ * - **Windows**: Uses `GetProcessMemoryInfo` from the Windows API. LINK against -lpsapi !!!
  * - **Linux**: Parses `/proc/self/status` for `VmRSS` (Resident Set Size).
  * - **macOS**: Uses `task_info` with `MACH_TASK_BASIC_INFO`.
  *
@@ -27,8 +27,8 @@
 #include <string>
 
 #if defined(_WIN32) || defined(_WIN64)  // Windows
-#include <psapi.h>
 #include <windows.h>
+#include <psapi.h>
 
 #elif defined(__linux__)  // Linux
 #include <fstream>
@@ -101,13 +101,14 @@ class MemoryUsage {
    * @return std::size_t Memory usage in bytes.
    * @see https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getprocessmemoryinfo
    */
-  static std::size_t getMemoryUsageWindows() {
+static std::size_t getMemoryUsageWindows() {
     PROCESS_MEMORY_COUNTERS memInfo;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo))) {
-      return memInfo.WorkingSetSize;  // Bytes
+    // Use K32GetProcessMemoryInfo for compatibility with modern Windows.
+    if (K32GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo))) {
+        return memInfo.WorkingSetSize; // Bytes
     }
     return 0;
-  }
+}
 #elif defined(__linux__)
   /**
    * @brief Get memory usage on Linux by reading `/proc/self/status`.
