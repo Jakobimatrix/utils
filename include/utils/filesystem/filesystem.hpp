@@ -35,5 +35,21 @@ std::wstring inline getLastPathComponent(const std::filesystem::directory_entry&
   return getLastPathComponent(entry.path());
 }
 
+/**
+ * @brief Checks if any element in the given path is hidden (starts with a '.').
+ *
+ * @param path The filesystem path to check.
+ * @return true If at least one element in the path is hidden.
+ * @return false Otherwise.
+ */
+bool inline hasHiddenElement(const std::filesystem::path& path) {
+  for (const auto& part : path) {
+    if (!part.empty() && part.filename().string().starts_with('.')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 }  // namespace util
