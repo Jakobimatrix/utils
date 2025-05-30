@@ -23,7 +23,8 @@
  *
  * printError<DEBUG_LEVEL>(DBG_LVL:WARNING, "this is just a warning")
  *
-
+ * @version 1.0
+ * @date 2021
  */
 
 #pragma once

@@ -1,14 +1,22 @@
 /**
  * @file variadicFunction.hpp
- * @brief
+ * @brief Contains a template class to call a function with variadic arguments.
  *
- * Detailed description, etc.
+ * This file defines a `VariadicFunction` class that allows storing a function
+ * with variadic arguments and calling it later without needing to pass the
+ * arguments again. It uses a tuple to store the arguments and a virtual base
+ * class to enable polymorphic behavior.
+ * 
+ * @version 1.0
+ * @date 2021
  */
 
 #pragma once
 
 #include <functional>
 #include <tuple>
+
+namespace util {
 
 // inspired by http://www.perry.cz/clanky/functions.html
 template <int... Is>
@@ -66,3 +74,5 @@ class VariadicFunction : public VirtualCall {
   std::tuple<ARGS...> args;
   std::function<void(ARGS...)> f;
 };
+
+} // namespace util

@@ -4,13 +4,14 @@
  * Contains template to generate a type container (std::variant/tuple) of std::map<Ti,Tj>/pair<Ti,Tj>... all possible combinations.
  * Contains template to generate type container (std::variant/tuple) of all std::container, given the base types.
  *
- * Detailed description, etc.
+ * @version 1.0
+ * @date 2021
  */
 
 #include <type_traits>
 #include <utility>
 
-#include<map>
+#include <map>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -21,6 +22,8 @@
 #include <unordered_set>
 
 #pragma once
+
+namespace util{
 
 // joining variant types: https://stackoverflow.com/questions/64042612/join-the-types-of-stdvarianta-b-c-and-stdvariantx-y-z
 /*
@@ -238,3 +241,5 @@ struct TypeContainerCreater {
     using typeWithBase = template_concat_t<BaseVariantsType, type>;
   };
 };
+
+}  // namespace util
