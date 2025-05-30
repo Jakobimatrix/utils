@@ -21,6 +21,7 @@ if(NOT DEFINED LIBRARY_LIB_VERSION)
       src/filesystem.cpp
       src/memory.cpp
       src/searchAndReplace.cpp
+      src/variadicFunction.cpp
     )
 
     target_link_libraries(${LIB_NAME}_${LIBRARY_LIB_VERSION}

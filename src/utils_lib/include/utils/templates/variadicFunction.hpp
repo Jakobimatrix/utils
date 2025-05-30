@@ -6,7 +6,7 @@
  * with variadic arguments and calling it later without needing to pass the
  * arguments again. It uses a tuple to store the arguments and a virtual base
  * class to enable polymorphic behavior.
- * 
+ *
  * @version 1.0
  * @date 2021
  */
@@ -36,11 +36,16 @@ struct gen_seq2<0, S...> {
  */
 class VirtualCall {
  public:
+  VirtualCall() noexcept;
+
   /*!
    * \brief virtual function will be overwritten by children, to call the saved
    * function.
    */
   virtual void call() = 0;
+
+ private:
+  ~VirtualCall() noexcept;
 };
 
 template <typename... ARGS>
@@ -51,10 +56,11 @@ class VariadicFunction : public VirtualCall {
    * provide the arguments and the pointer to the actual function.
    * \param args all arguments for the to be called function as std::tuple in
    * correct order.
-   * \param Pointer to the to be called function.
+   * \param f Pointer to the to be called function.
    */
   VariadicFunction(std::tuple<ARGS...> args, void (*f)(ARGS...))
-      : args(args), f(f) {}
+      : arguments(args),
+        varFunc(f) {}
 
   /*!
    * \brief To call the saved function without the need of arguments.
@@ -67,12 +73,12 @@ class VariadicFunction : public VirtualCall {
    */
   template <int... S>
   void callFunc(seq<S...>) {
-    f(std::get<S>(args)...);
+    varFunc(std::get<S>(arguments)...);
   }
 
  private:
-  std::tuple<ARGS...> args;
-  std::function<void(ARGS...)> f;
+  std::tuple<ARGS...> arguments;
+  std::function<void(ARGS...)> varFunc;
 };
 
-} // namespace util
+}  // namespace util
