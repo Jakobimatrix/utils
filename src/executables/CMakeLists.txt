@@ -6,7 +6,7 @@ if (FUZZER_ENABLED)
 
   target_link_libraries(fuzzer_searchAndReplace 
     PRIVATE 
-    utils_lib_0.0.1
+    utils_lib_1.0.0
     ${ENVIRONMENT_SETTINGS}
   )
 

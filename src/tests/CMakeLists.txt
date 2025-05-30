@@ -21,7 +21,7 @@ if (NOT FUZZER_ENABLED)
   target_link_libraries(test_searchAndReplace 
     PRIVATE
     Catch2::Catch2WithMain
-    utils_lib_0.0.1
+    utils_lib_1.0.0
     ${ENVIRONMENT_SETTINGS}
     )
 
@@ -29,7 +29,7 @@ if (NOT FUZZER_ENABLED)
   target_link_libraries(test_BinaryDataInterpreter 
     PRIVATE
     Catch2::Catch2WithMain
-    utils_lib_0.0.1
+    utils_lib_1.0.0
     ${ENVIRONMENT_SETTINGS}
     )
 
