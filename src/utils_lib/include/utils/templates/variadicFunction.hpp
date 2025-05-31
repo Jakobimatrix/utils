@@ -44,7 +44,7 @@ class VirtualCall {
    */
   virtual void call() = 0;
 
- private:
+ protected:
   ~VirtualCall() noexcept;
 };
 
