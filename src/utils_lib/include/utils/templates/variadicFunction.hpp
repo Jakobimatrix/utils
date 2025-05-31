@@ -44,8 +44,8 @@ class VirtualCall {
    */
   virtual void call() = 0;
 
- protected:
-  ~VirtualCall() noexcept;
+  // Needs to be public because I delete base pointers std::unique_ptr<VirtualCall>
+  virtual ~VirtualCall() noexcept;
 };
 
 template <typename... ARGS>
@@ -61,6 +61,8 @@ class VariadicFunction : public VirtualCall {
   VariadicFunction(std::tuple<ARGS...> args, void (*f)(ARGS...))
       : arguments(args),
         varFunc(f) {}
+
+  virtual ~VariadicFunction() noexcept override = default;
 
   /*!
    * \brief To call the saved function without the need of arguments.
