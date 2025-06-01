@@ -1,7 +1,7 @@
 /**
  * @file filesystem.hpp
  * @brief Adds some utility functions for filesystem operations.
- * 
+ *
  * @version 1.0
  * @date 2023
  */
@@ -33,7 +33,7 @@ std::wstring getLastPathComponent(const std::filesystem::path& path);
  * @param entry The filesystem directory entry from which to extract the filename or directory name.
  * @return std::wstring The name of the file or the directory at the end of the path in the entry.
  */
-std::wstring inline getLastPathComponent(const std::filesystem::directory_entry& entry);
+std::wstring getLastPathComponent(const std::filesystem::directory_entry& entry);
 
 /**
  * @brief Checks if any element in the given path is hidden (starts with a '.').
@@ -42,7 +42,7 @@ std::wstring inline getLastPathComponent(const std::filesystem::directory_entry&
  * @return true If at least one element in the path is hidden.
  * @return false Otherwise.
  */
-bool inline hasHiddenElement(const std::filesystem::path& path);
+bool hasHiddenElement(const std::filesystem::path& path);
 
 
 }  // namespace util

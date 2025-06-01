@@ -1,5 +1,5 @@
-#include <utils/data/BinaryDataInterpreter.hpp>
 #include <algorithm>  // Added for std::search and std::equal
+#include <utils/data/BinaryDataInterpreter.hpp>
 
 
 namespace util {
@@ -77,6 +77,8 @@ bool BinaryDataInterpreter::findNextBytesAndAdvance(const std::vector<uint8_t>& 
 
 size_t BinaryDataInterpreter::getCursor() const { return cursor; }
 
+size_t BinaryDataInterpreter::size() const { return data.size(); }
+
 bool BinaryDataInterpreter::setCursor(size_t newCursor) {
   if (newCursor > data.size()) {
     return false;
@@ -86,10 +88,22 @@ bool BinaryDataInterpreter::setCursor(size_t newCursor) {
 }
 
 bool BinaryDataInterpreter::readNext(std::string* value, size_t length) {
-  if (!ready || !hasDataLeft(length) || value == nullptr) {
+  if (!value || !ready || !hasDataLeft(length) || value == nullptr) {
     return false;
   }
   value->assign(reinterpret_cast<const char*>(data.data() + cursor), length);
+  cursor += length;
+  return true;
+}
+
+bool BinaryDataInterpreter::readNext(std::wstring* value, size_t length) {
+  if (!value || !ready || !hasDataLeft(length) || value == nullptr) {
+    return false;
+  }
+  if (length % 2 == 1) {
+    return false;
+  }
+  value->assign(reinterpret_cast<const wchar_t*>(data.data() + cursor), length / 2);
   cursor += length;
   return true;
 }

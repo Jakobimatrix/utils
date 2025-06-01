@@ -116,6 +116,12 @@ class BinaryDataInterpreter {
   size_t getCursor() const;
 
   /**
+   * @brief Gets the number of available bytes.
+   * @return The size of the binary data.
+   */
+  size_t size() const;
+
+  /**
    * @brief Sets the cursor to a new position.
    * @param newCursor The new cursor position.
    * @return true if the cursor was set, false if out of bounds.
@@ -126,7 +132,7 @@ class BinaryDataInterpreter {
   bool readNext(T* value)
     requires(std::is_trivially_copyable_v<T>)
   {
-    if (!ready || !hasDataLeft(sizeof(T))) {
+    if (!value || !ready || !hasDataLeft(sizeof(T))) {
       return false;
     }
     std::memcpy(value, data.data() + cursor, sizeof(T));
@@ -141,6 +147,14 @@ class BinaryDataInterpreter {
    * @return true if successful, false otherwise.
    */
   bool readNext(std::string* value, size_t length);
+
+  /**
+   * @brief Reads the next bytes as a string of given length.
+   * @param value Pointer to the wstring to store the result.
+   * @param length Number of bytes to read.
+   * @return true if successful, false otherwise.
+   */
+  bool readNext(std::wstring* value, size_t length);
 
  protected:
   std::vector<uint8_t> data{};

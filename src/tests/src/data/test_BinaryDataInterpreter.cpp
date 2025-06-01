@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
-#include <utils/data/BinaryDataInterpreter.hpp>
-#include <vector>
-#include <string>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <utils/data/BinaryDataInterpreter.hpp>
+#include <vector>
 
 // Construction from valid data array
 // Ensures that the class can be constructed from a valid byte array and is ready.
@@ -63,7 +63,12 @@ TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance empty search") {
 TEST_CASE("BinaryDataInterpreter: readNext string nullptr") {
   uint8_t arr[] = {1, 2, 3};
   util::BinaryDataInterpreter bdi(arr, 3);
-  REQUIRE_FALSE(bdi.readNext(nullptr, 2));
+  REQUIRE_FALSE(bdi.readNext<int>(nullptr));
+  REQUIRE_FALSE(bdi.readNext<double>(nullptr));
+  std::string* nullptr_string = nullptr;
+  REQUIRE_FALSE(bdi.readNext(nullptr_string, 2));
+  std::wstring* nullptr_wstring = nullptr;
+  REQUIRE_FALSE(bdi.readNext(nullptr_wstring, 2));
 }
 
 // readNext string with length exceeding data

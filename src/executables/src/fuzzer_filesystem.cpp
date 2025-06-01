@@ -6,9 +6,11 @@
  * @version 1.0
  **/
 
-#include <iostream>
+#include <utils/filesystem/filesystem.hpp>
 #include <utils/data/BinaryDataInterpreter.hpp>
-#include <utils/string/searchAndReplace.hpp>
+
+
+#include <iostream>
 
 
 /**
@@ -18,35 +20,30 @@
  * @param size Size of the Data.
  */
 inline void callSearchAndReplace(util::BinaryDataInterpreter& data) {
-  const std::vector<uint8_t> start_marker = {255, 0, 255, 0};
-  const std::vector<uint8_t> end_marker   = {0, 0, 0, 0};
+  std::string s;
+  std::wstring ws;
 
-  std::vector<std::string> extracted_strings;
-
-  // Try to extract two strings
-  for (int i = 0; i < 2; ++i) {
-    if (!data.findNextBytesAndAdvance(start_marker, true))
-      break;
-
-    size_t str_start = data.getCursor();
-    if (!data.findNextBytesAndAdvance(end_marker, false))
-      break;
-    size_t str_end = data.getCursor();
-    data.setCursor(str_start);
-    std::string s;
-    if (!data.readNext(&s, str_end - str_start)) {
-      std::cerr << "Failed to read next bytes after start marker." << std::endl;
-      break;
-    }
-    extracted_strings.push_back(std::move(s));
+  if (!data.readNext(&s, data.size())) {
+    std::cerr << "Failed to read binary to string." << std::endl;
+    return;
   }
 
-  if (extracted_strings.size() == 2) {
-    std::string base             = extracted_strings[0];
-    const std::string& toSearch  = extracted_strings[0];
-    const std::string& toReplace = extracted_strings[1];
-    util::replaceSubstring(&base, toSearch, toReplace);
+  size_t wstringSize = data.size() % 2 == 0 ? data.size() : data.size() - 1;
+  if (data.size() == 0) {
+    wstringSize = 0;
   }
+
+  if (!data.readNext(&ws, wstringSize)) {
+    std::cerr << "Failed to read binary to wstring." << std::endl;
+    return;
+  }
+
+  std::filesystem::path pathFromString{s};
+  std::filesystem::path pathFromWString{ws};
+  [[maybe_unused]] const auto val1 = util::getLastPathComponent(pathFromString);
+  [[maybe_unused]] const auto val2 = util::hasHiddenElement(pathFromString);
+  [[maybe_unused]] const auto val3 = util::getLastPathComponent(pathFromWString);
+  [[maybe_unused]] const auto val4 = util::hasHiddenElement(pathFromWString);
 }
 
 
