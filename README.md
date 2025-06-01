@@ -2,7 +2,7 @@
 
 Reusable C++ utility library for cross-project development.
 
-[![C/C++ CI](https://github.com/Jakobimatrix/utils/actions/workflows/ubuntu_build_test.yml/badge.svg?branch=main)](https://github.com/Jakobimatrix/utils/actions/workflows/ubuntu_build_test.yml)
+[![C/C++ CI](https://github.com/Jakobimatrix/utils/actions/workflows/ubuntu_build_test.yml/badge.svg)](https://github.com/Jakobimatrix/utils/actions/workflows/ubuntu_build_test.yml)
 
  - OS: Ubuntu 24.04
  - compiler: clang 19, gcc 13
