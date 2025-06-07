@@ -1,4 +1,5 @@
 #include <utils/system/memory.hpp>
+#include <stdexcept>
 
 #if defined(_WIN32) || defined(_WIN64)  // Windows
 #include <windows.h>
