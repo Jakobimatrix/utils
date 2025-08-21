@@ -24,13 +24,13 @@
 #pragma once
 
 #include <cstddef>
-#include <string>
+#include <cstdint>
 
 namespace util {
 /**
  * @brief Enum to specify memory unit format.
  */
-enum class MemoryUnit {
+enum class MemoryUnit : std::uint8_t {
   B,   ///< Bytes
   KB,  ///< Kilobytes
   MB,  ///< Megabytes
@@ -64,7 +64,7 @@ class MemoryUsage {
    * @return std::size_t Memory usage in bytes.
    * @see https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getprocessmemoryinfo
    */
-static std::size_t getMemoryUsageWindows();
+  static std::size_t getMemoryUsageWindows();
 #elif defined(__linux__)
   /**
    * @brief Get memory usage on Linux by reading `/proc/self/status`.

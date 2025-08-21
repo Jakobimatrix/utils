@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <string>
 #include <utils/filesystem/filesystem.hpp>
 
 #include <filesystem>
@@ -19,12 +21,9 @@ std::wstring getLastPathComponent(const std::filesystem::directory_entry& entry)
 }
 
 bool hasHiddenElement(const std::filesystem::path& path) {
-  for (const auto& part : path) {
-    if (!part.empty() && part.filename().string().starts_with('.')) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(path.begin(), path.end(), [](const auto& part) {
+    return !part.empty() && part.filename().string().starts_with('.');
+  });
 }
 
 

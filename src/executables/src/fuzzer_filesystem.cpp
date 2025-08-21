@@ -20,26 +20,26 @@
  * @param size Size of the Data.
  */
 inline void callSearchAndReplace(util::BinaryDataInterpreter& data) {
-  std::string s;
-  std::wstring ws;
+  std::string string_data;
+  std::wstring wide_string_data;
 
-  if (!data.readNext(&s, data.size())) {
+  if (!data.readNext(&string_data, data.size())) {
     std::cerr << "Failed to read binary to string." << std::endl;
     return;
   }
 
-  size_t wstringSize = data.size() % 2 == 0 ? data.size() : data.size() - 1;
+  size_t wstring_size = data.size() % 2 == 0 ? data.size() : data.size() - 1;
   if (data.size() == 0) {
-    wstringSize = 0;
+    wstring_size = 0;
   }
 
-  if (!data.readNext(&ws, wstringSize)) {
+  if (!data.readNext(&wide_string_data, wstring_size)) {
     std::cerr << "Failed to read binary to wstring." << std::endl;
     return;
   }
 
-  std::filesystem::path pathFromString{s};
-  std::filesystem::path pathFromWString{ws};
+  std::filesystem::path pathFromString{string_data};
+  std::filesystem::path pathFromWString{wide_string_data};
   [[maybe_unused]] const auto val1 = util::getLastPathComponent(pathFromString);
   [[maybe_unused]] const auto val2 = util::hasHiddenElement(pathFromString);
   [[maybe_unused]] const auto val3 = util::getLastPathComponent(pathFromWString);

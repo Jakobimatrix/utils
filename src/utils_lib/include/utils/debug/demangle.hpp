@@ -8,11 +8,13 @@
 
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <format>
 #include <map>
 #include <typeinfo>
 #include <iostream>
+#include <variant>
 
 namespace utils {
 
@@ -36,8 +38,8 @@ std::string demangle(const char* name);
  * @param obj The object whose type will be printed.
  */
 template <typename T>
-void printType(const T&) {
-  std::cout << demangle(typeid(T).name()) << std::endl;
+void printType(const T& /*unused*/) {
+  std::cout << demangle(typeid(T).name()) << '\n';
 }
 
 /**
@@ -50,11 +52,11 @@ void printType(const T&) {
  * @param map The map whose type will be printed.
  */
 template <typename T1, typename T2>
-void printType(const std::map<T1, T2>&) {
+void printType(const std::map<T1, T2>& /*unused*/) {
   std::cout << std::format("std::map<{}, {}>",
                            demangle(typeid(T1).name()),
                            demangle(typeid(T2).name()))
-            << std::endl;
+            << '\n';
 }
 
 /**

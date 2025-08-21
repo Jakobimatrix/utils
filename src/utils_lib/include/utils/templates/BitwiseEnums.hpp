@@ -32,58 +32,76 @@
 #include <type_traits>
 
 template <bool B, class T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
+using enable_if_t = std::enable_if_t<B, T>;
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T operator~(const T &value) {
-  return static_cast<T>(~static_cast<typename std::underlying_type<T>::type>(value));
+template <typename T>
+constexpr T operator~(const T& value)
+  requires std::is_enum<T>::value
+{
+  return static_cast<T>(~static_cast<std::underlying_type_t<T>>(value));
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T operator|(const T &left, const T &right) {
-  return static_cast<T>(static_cast<typename std::underlying_type<T>::type>(left) |
-                        static_cast<typename std::underlying_type<T>::type>(right));
+template <typename T>
+constexpr T operator|(const T& left, const T& right)
+  requires std::is_enum<T>::value
+{
+  return static_cast<T>(static_cast<std::underlying_type_t<T>>(left) |
+                        static_cast<std::underlying_type_t<T>>(right));
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T &operator|=(T &left, const T &right) {
+template <typename T>
+constexpr T& operator|=(T& left, const T& right)
+  requires std::is_enum<T>::value
+{
   return left = left | right;
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T operator&(const T &left, const T &right) {
-  return static_cast<T>(static_cast<typename std::underlying_type<T>::type>(left) &
-                        static_cast<typename std::underlying_type<T>::type>(right));
+template <typename T>
+constexpr T operator&(const T& left, const T& right)
+  requires std::is_enum<T>::value
+{
+  return static_cast<T>(static_cast<std::underlying_type_t<T>>(left) &
+                        static_cast<std::underlying_type_t<T>>(right));
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T &operator&=(T &left, const T &right) {
+template <typename T>
+constexpr T& operator&=(T& left, const T& right)
+  requires std::is_enum<T>::value
+{
   return left = left & right;
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T operator>>(const T &value,
-                              const typename std::underlying_type<T>::type &shift) {
-  return static_cast<T>(static_cast<typename std::underlying_type<T>::type>(value) >> shift);
+template <typename T>
+constexpr T operator>>(const T& value, const typename std::underlying_type<T>::type& shift)
+  requires std::is_enum<T>::value
+{
+  return static_cast<T>(static_cast<std::underlying_type_t<T>>(value) >> shift);
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T &operator>>=(T &value, const typename std::underlying_type<T>::type &shift) {
+template <typename T>
+constexpr T& operator>>=(T& value, const typename std::underlying_type<T>::type& shift)
+  requires std::is_enum<T>::value
+{
   return value = value >> shift;
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T operator<<(const T &value,
-                              const typename std::underlying_type<T>::type &shift) {
-  return static_cast<T>(static_cast<typename std::underlying_type<T>::type>(value) << shift);
+template <typename T>
+constexpr T operator<<(const T& value, const typename std::underlying_type<T>::type& shift)
+  requires std::is_enum<T>::value
+{
+  return static_cast<T>(static_cast<std::underlying_type_t<T>>(value) << shift);
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr T &operator<<=(T &value, const typename std::underlying_type<T>::type &shift) {
+template <typename T>
+constexpr T& operator<<=(T& value, const typename std::underlying_type<T>::type& shift)
+  requires std::is_enum<T>::value
+{
   return value = value << shift;
 }
 
-template <typename T, typename = enable_if_t<std::is_enum<T>::value>>
-inline constexpr bool isSet(const T &mask, const T &probe) {
+template <typename T>
+constexpr bool isSet(const T& mask, const T& probe)
+  requires std::is_enum<T>::value
+{
   return static_cast<bool>(mask & probe);
 }

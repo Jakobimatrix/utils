@@ -1,0 +1,8 @@
+# this is a normal library, we do not want internal linkage
+
+Checks: |
+  -misc-use-internal-linkage
+  
+InheritParentConfig: true
+
+

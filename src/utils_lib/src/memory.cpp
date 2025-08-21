@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <utils/system/memory.hpp>
 #include <stdexcept>
 
@@ -25,15 +26,18 @@ double MemoryUsage::get(MemoryUnit unit) {
 #else
   throw std::runtime_error("Unsupported platform");
 #endif
+  constexpr double KILOBYTE = 1024.0;
+  constexpr double MEGABYTE = KILOBYTE * 1024.0;
+  constexpr double GIGABYTE = MEGABYTE * 1024.0;
   switch (unit) {
     case MemoryUnit::B:
       return memoryUsageInBytes;
     case MemoryUnit::KB:
-      return memoryUsageInBytes / 1024.0;
+      return memoryUsageInBytes / KILOBYTE;
     case MemoryUnit::MB:
-      return memoryUsageInBytes / (1024.0 * 1024.0);
+      return memoryUsageInBytes / MEGABYTE;
     case MemoryUnit::GB:
-      return memoryUsageInBytes / (1024.0 * 1024.0 * 1024.0);
+      return memoryUsageInBytes / GIGABYTE;
     default:
       throw std::invalid_argument("Invalid MemoryUnit");
   }
@@ -57,12 +61,13 @@ std::size_t MemoryUsage::getMemoryUsageLinux() {
     if (line.find("VmRSS:") != std::string::npos) {  // Resident Set Size
       std::istringstream iss(line);
       std::string key;
-      std::size_t value;
+      std::size_t value = 0;
       std::string unit;
+      constexpr size_t KILOBYTE = 1024;
 
       iss >> key >> value >> unit;  // Parse key, value, and unit
       if (unit == "kB") {
-        return value * 1024;  // Convert from kB to bytes
+        return value * KILOBYTE;  // Convert from kB to bytes
       }
     }
   }

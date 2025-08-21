@@ -13,61 +13,61 @@
 #include <string>
 
 TEST_CASE("Basic replacement") {
-  std::string s = "hello world";
-  util::replaceSubstring(&s, "world", "there");
-  REQUIRE(s == "hello there");
+  std::string stringVar = "hello world";
+  util::replaceSubstring(&stringVar, "world", "there");
+  REQUIRE(stringVar == "hello there");
 }
 
 TEST_CASE("No match found") {
-  std::string s = "hello world";
-  util::replaceSubstring(&s, "foo", "bar");
-  REQUIRE(s == "hello world");
+  std::string stringVar = "hello world";
+  util::replaceSubstring(&stringVar, "foo", "bar");
+  REQUIRE(stringVar == "hello world");
 }
 
 TEST_CASE("Empty string input") {
-  std::string s = "";
-  util::replaceSubstring(&s, "a", "b");
-  REQUIRE(s == "");
+  std::string stringVar;
+  util::replaceSubstring(&stringVar, "a", "b");
+  REQUIRE(stringVar.empty());
 }
 
 TEST_CASE("Replace with empty string") {
-  std::string s = "abcabc";
-  util::replaceSubstring(&s, "b", "");
-  REQUIRE(s == "acac");
+  std::string stringVar = "abcabc";
+  util::replaceSubstring(&stringVar, "b", "");
+  REQUIRE(stringVar == "acac");
 }
 
 TEST_CASE("Replace empty substring (should do nothing)") {
-  std::string s = "abc";
-  util::replaceSubstring(&s, "", "x");
-  REQUIRE(s == "abc");
+  std::string stringVar = "abc";
+  util::replaceSubstring(&stringVar, "", "x");
+  REQUIRE(stringVar == "abc");
 }
 
 TEST_CASE("Multiple occurrences") {
-  std::string s = "foo bar foo bar";
-  util::replaceSubstring(&s, "foo", "baz");
-  REQUIRE(s == "baz bar baz bar");
+  std::string stringVar = "foo bar foo bar";
+  util::replaceSubstring(&stringVar, "foo", "baz");
+  REQUIRE(stringVar == "baz bar baz bar");
 }
 
 TEST_CASE("Overlapping substrings") {
-  std::string s = "aaa";
-  util::replaceSubstring(&s, "aa", "b");
-  REQUIRE(s == "ba");
+  std::string stringVar = "aaa";
+  util::replaceSubstring(&stringVar, "aa", "b");
+  REQUIRE(stringVar == "ba");
 }
 
 TEST_CASE("Case sensitivity") {
-  std::string s = "Hello hello";
-  util::replaceSubstring(&s, "hello", "hi");
-  REQUIRE(s == "Hello hi");
+  std::string stringVar = "Hello hello";
+  util::replaceSubstring(&stringVar, "hello", "hi");
+  REQUIRE(stringVar == "Hello hi");
 }
 
 TEST_CASE("Start position skips initial matches") {
-  std::string s = "abcabcabc";
-  util::replaceSubstring(&s, "abc", "x", 3);
-  REQUIRE(s == "abcxx");
+  std::string stringVar = "abcabcabc";
+  util::replaceSubstring(&stringVar, "abc", "x", 3);
+  REQUIRE(stringVar == "abcxx");
 }
 
 TEST_CASE("Replace substring with itself (should not loop infinitely)") {
-  std::string s = "repeat";
-  util::replaceSubstring(&s, "repeat", "repeat");
-  REQUIRE(s == "repeat");
+  std::string stringVar = "repeat";
+  util::replaceSubstring(&stringVar, "repeat", "repeat");
+  REQUIRE(stringVar == "repeat");
 }

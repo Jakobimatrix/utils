@@ -8,10 +8,9 @@
  * @date 2021
  */
 
-#include <type_traits>
+#include <deque>
 #include <utility>
 
-#include <map>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -23,7 +22,7 @@
 
 #pragma once
 
-namespace util{
+namespace util {
 
 // joining variant types: https://stackoverflow.com/questions/64042612/join-the-types-of-stdvarianta-b-c-and-stdvariantx-y-z
 /*
@@ -55,7 +54,7 @@ struct PointerWrapper {
 
 template <typename T>
 struct PointerWrapper<T, true> {
-  using type = T *;  // Adds pointer
+  using type = T*;  // Adds pointer
 };
 
 template <typename T, bool add_pointer>
@@ -66,8 +65,8 @@ using PointerWrapper_t = typename PointerWrapper<T, add_pointer>::type;
 template <template <typename...> class TypeContainer, template <typename, typename> class TemplateType, typename T1, typename T2, bool use_pointer>
 struct generateTemplateVariants_T1 {
   using type =
-      TypeContainer<typename PointerWrapper<TemplateType<T1, T2>, use_pointer>::type,
-                    typename PointerWrapper<TemplateType<T2, T1>, use_pointer>::type>;
+    TypeContainer<typename PointerWrapper<TemplateType<T1, T2>, use_pointer>::type,
+                  typename PointerWrapper<TemplateType<T2, T1>, use_pointer>::type>;
 };
 
 // Base case when no types remain
@@ -84,8 +83,8 @@ struct generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T
 template <template <typename...> class TypeContainer, template <typename, typename> class TemplateType, bool use_pointer, typename T1, typename T2, typename... Rest>
 struct generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T1, T2, Rest...> {
   using type = typename template_concat<
-      typename generateTemplateVariants_T1<TypeContainer, TemplateType, T1, T2, use_pointer>::type,
-      typename generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T1, Rest...>::type>::type;
+    typename generateTemplateVariants_T1<TypeContainer, TemplateType, T1, T2, use_pointer>::type,
+    typename generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T1, Rest...>::type>::type;
 };
 
 
@@ -102,9 +101,9 @@ struct generateTemplateVariants<TypeContainer, TemplateType, use_pointer, T> {
 template <template <typename...> class TypeContainer, template <typename, typename> class TemplateType, bool use_pointer, typename T1, typename T2, typename... Rest>
 struct generateTemplateVariants<TypeContainer, TemplateType, use_pointer, T1, T2, Rest...> {
   using VariantsForT1 =
-      typename generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T1, T2, Rest...>::type;
+    typename generateTemplateVariantsForT1<TypeContainer, TemplateType, use_pointer, T1, T2, Rest...>::type;
   using VariantsForRest =
-      typename generateTemplateVariants<TypeContainer, TemplateType, use_pointer, T2, Rest...>::type;
+    typename generateTemplateVariants<TypeContainer, TemplateType, use_pointer, T2, Rest...>::type;
   using type = template_concat_t<VariantsForT1, VariantsForRest>;
 };
 
@@ -169,9 +168,9 @@ using stdPair = std::pair<T, U>;
 template <template <typename...> class TypeContainer, template <typename, typename> class TemplateType, bool use_pointer, typename... Types>
 struct generateAllPairedTemplateVariants {
   using SameTypesVariant =
-      TypeContainer<typename PointerWrapper<TemplateType<Types, Types>, use_pointer>::type...>;
+    TypeContainer<typename PointerWrapper<TemplateType<Types, Types>, use_pointer>::type...>;
   using DifferentTypesVariant =
-      typename generateTemplateVariants<TypeContainer, TemplateType, use_pointer, Types...>::type;
+    typename generateTemplateVariants<TypeContainer, TemplateType, use_pointer, Types...>::type;
   using type = template_concat_t<SameTypesVariant, DifferentTypesVariant>;
 };
 
@@ -194,8 +193,8 @@ struct TypeContainerCreater {
   template <template <typename> class StlContainer, template <typename> class... OtherStlContainers>
   struct SingleStlTypeContainer<StlContainer, OtherStlContainers...> {
     using type =
-        template_concat_t<typename SingleStlTypeContainer<StlContainer>::type,
-                          typename SingleStlTypeContainer<OtherStlContainers...>::type>;
+      template_concat_t<typename SingleStlTypeContainer<StlContainer>::type,
+                        typename SingleStlTypeContainer<OtherStlContainers...>::type>;
   };
 
 
@@ -204,15 +203,15 @@ struct TypeContainerCreater {
 
   template <template <typename, typename> class StlContainer_Paired>
   struct PairedStlTypeContainer<StlContainer_Paired> {
-    using type = typename
-        generateAllPairedTemplateVariants<TypeContainer, StlContainer_Paired, use_pointer, BaseTypes...>::type;
+    using type =
+      typename generateAllPairedTemplateVariants<TypeContainer, StlContainer_Paired, use_pointer, BaseTypes...>::type;
   };
 
   template <template <typename, typename> class StlContainer_Paired, template <typename, typename> class... OtherStlContainers_Paired>
   struct PairedStlTypeContainer<StlContainer_Paired, OtherStlContainers_Paired...> {
     using type =
-        template_concat_t<typename PairedStlTypeContainer<StlContainer_Paired>::type,
-                          typename PairedStlTypeContainer<OtherStlContainers_Paired...>::type>;
+      template_concat_t<typename PairedStlTypeContainer<StlContainer_Paired>::type,
+                        typename PairedStlTypeContainer<OtherStlContainers_Paired...>::type>;
   };
 
   template <template <typename> class... StlContainers>
@@ -220,8 +219,8 @@ struct TypeContainerCreater {
     template <template <typename, typename> class... StlContainers_Paired>
     struct PairedTypeStl {
       using type =
-          template_concat_t<typename SingleStlTypeContainer<StlContainers...>::type,
-                            typename PairedStlTypeContainer<StlContainers_Paired...>::type>;
+        template_concat_t<typename SingleStlTypeContainer<StlContainers...>::type,
+                          typename PairedStlTypeContainer<StlContainers_Paired...>::type>;
       using typeWithBase = template_concat_t<BaseVariantsType, type>;
     };
     using type = typename SingleStlTypeContainer<StlContainers...>::type;
@@ -233,8 +232,8 @@ struct TypeContainerCreater {
     template <template <typename> class... StlContainers>
     struct SingleTypeStl {
       using type =
-          template_concat_t<typename PairedStlTypeContainer<StlContainers_Paired...>::type,
-                            typename SingleStlTypeContainer<StlContainers...>::type>;
+        template_concat_t<typename PairedStlTypeContainer<StlContainers_Paired...>::type,
+                          typename SingleStlTypeContainer<StlContainers...>::type>;
       using typeWithBase = template_concat_t<BaseVariantsType, type>;
     };
     using type = typename PairedStlTypeContainer<StlContainers_Paired...>::type;

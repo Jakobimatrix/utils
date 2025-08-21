@@ -6,10 +6,14 @@
  * @date 2025.05.29
  */
 
+#include <concepts>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace util {
@@ -61,7 +65,7 @@ class BinaryDataInterpreter {
    * @brief Returns the status of the data.
    * @return true if the data was read correctly, false otherwise.
    */
-  bool isReady() const { return ready; }
+  [[nodiscard]] bool isReady() const { return ready; }
 
   /**
    * @brief Sets the cursor to the end of the data.
@@ -78,14 +82,14 @@ class BinaryDataInterpreter {
    * @param requestedSize The number of bytes requested.
    * @return true if enough data is left, false otherwise.
    */
-  bool hasDataLeft(size_t requestedSize) const;
+  [[nodiscard]] bool hasDataLeft(size_t requestedSize) const;
 
   /**
    * @brief Checks if the next bytes at the cursor match the given bytes.
    * @param bytes The bytes to compare.
    * @return true if the next bytes match, false otherwise.
    */
-  bool nextBytesEqual(const std::vector<uint8_t>& bytes) const;
+  [[nodiscard]] bool nextBytesEqual(const std::vector<uint8_t>& bytes) const;
 
   /**
    * @brief Advances the cursor by a given size.
@@ -113,13 +117,13 @@ class BinaryDataInterpreter {
    * @brief Gets the current cursor position.
    * @return The current cursor position.
    */
-  size_t getCursor() const;
+  [[nodiscard]] size_t getCursor() const;
 
   /**
    * @brief Gets the number of available bytes.
    * @return The size of the binary data.
    */
-  size_t size() const;
+  [[nodiscard]] size_t size() const;
 
   /**
    * @brief Sets the cursor to a new position.
@@ -157,7 +161,7 @@ class BinaryDataInterpreter {
   bool readNext(std::wstring* value, size_t length);
 
  protected:
-  std::vector<uint8_t> data{};
+  std::vector<uint8_t> data;
   bool ready{false};
 
   size_t cursor{0};

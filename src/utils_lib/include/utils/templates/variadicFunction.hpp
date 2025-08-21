@@ -27,7 +27,7 @@ struct gen_seq2 : gen_seq2<N - 1, N - 1, Is...> {};
 
 template <int... S>
 struct gen_seq2<0, S...> {
-  typedef seq<S...> type;
+  using type = seq<S...>;
 };
 
 /*!
@@ -56,13 +56,13 @@ class VariadicFunction : public VirtualCall {
    * provide the arguments and the pointer to the actual function.
    * \param args all arguments for the to be called function as std::tuple in
    * correct order.
-   * \param f Pointer to the to be called function.
+   * \param func Pointer to the to be called function.
    */
-  VariadicFunction(std::tuple<ARGS...> args, void (*f)(ARGS...))
+  VariadicFunction(std::tuple<ARGS...> args, void (*func)(ARGS...))
       : arguments(args),
-        varFunc(f) {}
+        varFunc(func) {}
 
-  virtual ~VariadicFunction() noexcept override = default;
+  ~VariadicFunction() noexcept override = default;
 
   /*!
    * \brief To call the saved function without the need of arguments.
@@ -74,7 +74,7 @@ class VariadicFunction : public VirtualCall {
    * seq The index-list of the arguments for the function call.
    */
   template <int... S>
-  void callFunc(seq<S...>) {
+  void callFunc(seq<S...> /*unused*/) {
     varFunc(std::get<S>(arguments)...);
   }
 

@@ -1,5 +1,13 @@
 #include <algorithm>  // Added for std::search and std::equal
+#include <filesystem>
+#include <cstdint>
+#include <exception>
+#include <iostream>
+#include <cstddef>
+#include <iterator>
+#include <string>
 #include <utils/data/BinaryDataInterpreter.hpp>
+#include <vector>
 
 
 namespace util {
@@ -88,7 +96,7 @@ bool BinaryDataInterpreter::setCursor(size_t newCursor) {
 }
 
 bool BinaryDataInterpreter::readNext(std::string* value, size_t length) {
-  if (!value || !ready || !hasDataLeft(length) || value == nullptr) {
+  if ((value == nullptr) || !ready || !hasDataLeft(length) || value == nullptr) {
     return false;
   }
   value->assign(reinterpret_cast<const char*>(data.data() + cursor), length);
@@ -97,7 +105,7 @@ bool BinaryDataInterpreter::readNext(std::string* value, size_t length) {
 }
 
 bool BinaryDataInterpreter::readNext(std::wstring* value, size_t length) {
-  if (!value || !ready || !hasDataLeft(length) || value == nullptr) {
+  if ((value == nullptr) || !ready || !hasDataLeft(length) || value == nullptr) {
     return false;
   }
   if (length % 2 == 1) {
