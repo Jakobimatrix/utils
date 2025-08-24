@@ -10,7 +10,7 @@
 
 namespace util {
 #ifndef _WIN32
-static std::string demangle(const char* name) {
+std::string demangle(const char* name) {
   int status     = -1;
   char* realname = abi::__cxa_demangle(name, nullptr, nullptr, &status);
   std::string result((realname != nullptr) ? realname : name);

@@ -6,7 +6,8 @@ Checks: |
   -misc-include-cleaner.GlobList,
   -misc-use-anonymous-namespace,
   -bugprone-chained-comparison,
-  -cppcoreguidelines-avoid-do-while
+  -cppcoreguidelines-avoid-do-while,
+  -readability-function-cognitive-complexity
   
 InheritParentConfig: true
 

@@ -7,28 +7,18 @@
  * arguments again. It uses a tuple to store the arguments and a virtual base
  * class to enable polymorphic behavior.
  *
- * @version 1.0
- * @date 2021
+ * @version 2.0
+ * @date 2025.08.24
  */
 
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <tuple>
+#include <utility>
 
 namespace util {
-
-// inspired by http://www.perry.cz/clanky/functions.html
-template <int... Is>
-struct seq {};
-
-template <int N, int... Is>
-struct gen_seq2 : gen_seq2<N - 1, N - 1, Is...> {};
-
-template <int... S>
-struct gen_seq2<0, S...> {
-  using type = seq<S...>;
-};
 
 /*!
  * \brief Virtual base function to be able to store a pointer to different
@@ -46,6 +36,11 @@ class VirtualCall {
 
   // Needs to be public because I delete base pointers std::unique_ptr<VirtualCall>
   virtual ~VirtualCall() noexcept;
+  // rule of 5
+  VirtualCall(const VirtualCall&)                = default;
+  VirtualCall& operator=(const VirtualCall&)     = default;
+  VirtualCall(VirtualCall&&) noexcept            = default;
+  VirtualCall& operator=(VirtualCall&&) noexcept = default;
 };
 
 template <typename... ARGS>
@@ -54,28 +49,34 @@ class VariadicFunction : public VirtualCall {
   /*!
    * \brief Constructor
    * provide the arguments and the pointer to the actual function.
+   * \param func Pointer to the to be called function.
    * \param args all arguments for the to be called function as std::tuple in
    * correct order.
-   * \param func Pointer to the to be called function.
    */
-  VariadicFunction(std::tuple<ARGS...> args, void (*func)(ARGS...))
-      : arguments(args),
-        varFunc(func) {}
+  template <typename... Ts>
+  VariadicFunction(std::function<void(ARGS...)> func, Ts&&... args)
+      : arguments(std::forward_as_tuple(std::forward<Ts>(args)...)),
+        varFunc(std::move(func)) {}
 
   ~VariadicFunction() noexcept override = default;
+  // rule of 5
+  VariadicFunction(const VariadicFunction&)                = default;
+  VariadicFunction& operator=(const VariadicFunction&)     = default;
+  VariadicFunction(VariadicFunction&&) noexcept            = default;
+  VariadicFunction& operator=(VariadicFunction&&) noexcept = default;
 
   /*!
    * \brief To call the saved function without the need of arguments.
    */
-  void call() override { callFunc(typename gen_seq2<sizeof...(ARGS)>::type()); }
+  void call() override { callFunc(std::index_sequence_for<ARGS...>{}); }
 
   /*!
    * \brief To call the saved function.
-   * seq The index-list of the arguments for the function call.
+   * Helper to unpack the tuple into the function call.
    */
-  template <int... S>
-  void callFunc(seq<S...> /*unused*/) {
-    varFunc(std::get<S>(arguments)...);
+  template <std::size_t... I>
+  void callFunc(std::index_sequence<I...> /*unused*/) {
+    varFunc(std::get<I>(arguments)...);
   }
 
  private:

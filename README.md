@@ -24,24 +24,17 @@ Reusable C++ utility library for cross-project development.
 ## Build
 
 ```bash
-./build.sh -d -t      # Debug build with tests
-./build.sh -r         # Release build
-./build.sh -r -f --compiler clang  # Enable fuzzing (requires clang), builds fuzzer targets
+./initRepo/scripts/build.sh -d -T    # Debug build with tests
+./initRepo/scripts/build.sh -r       # Release build
+./initRepo/scripts/build.sh -r -f --compiler clang  # Enable fuzzing (requires clang), builds fuzzer targets
 ```
 
 ## Usage
 
 Include headers from `include/utils/` in your project. Link against the built static library. 
 
-**utils_lib_1.0.0**
+**utils_lib_2.0.0**
 
-## Tests
 
-Run with:
-
-```bash
-./build-*/test_searchAndReplace
-./build-*/test_BinaryDataInterpreter
-```
 
 

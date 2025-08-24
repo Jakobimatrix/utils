@@ -16,7 +16,7 @@
 #include <iostream>
 #include <variant>
 
-namespace utils {
+namespace util {
 
 /**
  * @brief Demangles a mangled C++ type name.
@@ -76,4 +76,4 @@ void printVariantTypes() {
   }
 }
 
-}  // namespace utils
+}  // namespace util

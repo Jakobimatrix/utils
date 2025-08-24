@@ -1,6 +1,6 @@
 
 # change the version if there are API changes!
-set(LIB_VERSION "1.0.0")
+set(LIB_VERSION "2.0.0")
 set(LIB_NAME "utils_lib")
 
 if(NOT DEFINED LIBRARY_LIB_VERSION)

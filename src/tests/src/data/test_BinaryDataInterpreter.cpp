@@ -1,9 +1,19 @@
+/**
+ * @file test_BinaryDataInterpreter.cpp
+ * @brief contains tests for the BinaryDataInterpreter class
+ *
+ * @date 2025
+ * @author Jakob Wandel
+ * @version 1.0
+ **/
+
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <utils/data/BinaryDataInterpreter.hpp>
 #include <vector>
+
 // NOLINTBEGIN (readability-magic-numbers) This test uses some random numbers, there is no value in giving them a name
 // Construction from valid data array
 // Ensures that the class can be constructed from a valid byte array and is ready.
@@ -175,7 +185,7 @@ TEST_CASE("BinaryDataInterpreter: advanceCursorIfEqual negative") {
 
 // Positive test for findNextBytesAndAdvance
 TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance positive") {
-  const std::array<uint8_t, 5> arr = {1, 2, 3, 4, 2, 3};
+  const std::array<uint8_t, 6> arr = {1, 2, 3, 4, 2, 3};
   util::BinaryDataInterpreter bdi(arr.data(), 6);
   std::vector<uint8_t> const cmp = {2, 3};
   REQUIRE(bdi.findNextBytesAndAdvance(cmp, false));
@@ -184,7 +194,7 @@ TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance positive") {
 
 // Positive test for findNextBytesAndAdvance beyond
 TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance beyond positive") {
-  const std::array<uint8_t, 5> arr = {1, 2, 3, 4, 2, 3};
+  const std::array<uint8_t, 6> arr = {1, 2, 3, 4, 2, 3};
   util::BinaryDataInterpreter bdi(arr.data(), 6);
   std::vector<uint8_t> const cmp = {2, 3};
   REQUIRE(bdi.findNextBytesAndAdvance(cmp, true));
@@ -193,7 +203,7 @@ TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance beyond positive") {
 
 // Negative test for findNextBytesAndAdvance
 TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance negative") {
-  const std::array<uint8_t, 5> arr = {1, 2, 3, 4};
+  const std::array<uint8_t, 4> arr = {1, 2, 3, 4};
   util::BinaryDataInterpreter bdi(arr.data(), 4);
   std::vector<uint8_t> const cmp = {5, 6};
   REQUIRE_FALSE(bdi.findNextBytesAndAdvance(cmp, true));
@@ -202,7 +212,7 @@ TEST_CASE("BinaryDataInterpreter: findNextBytesAndAdvance negative") {
 
 // Positive test for setCursor
 TEST_CASE("BinaryDataInterpreter: setCursor positive") {
-  const std::array<uint8_t, 5> arr = {1, 2, 3, 4};
+  const std::array<uint8_t, 4> arr = {1, 2, 3, 4};
   util::BinaryDataInterpreter bdi(arr.data(), 4);
   REQUIRE(bdi.setCursor(2));
   REQUIRE(bdi.getCursor() == 2);
@@ -210,7 +220,7 @@ TEST_CASE("BinaryDataInterpreter: setCursor positive") {
 
 // Negative test for setCursor
 TEST_CASE("BinaryDataInterpreter: setCursor negative") {
-  const std::array<uint8_t, 5> arr = {1, 2, 3};
+  const std::array<uint8_t, 3> arr = {1, 2, 3};
   util::BinaryDataInterpreter bdi(arr.data(), 3);
   REQUIRE_FALSE(bdi.setCursor(5));
   REQUIRE(bdi.getCursor() == 0);
@@ -218,7 +228,7 @@ TEST_CASE("BinaryDataInterpreter: setCursor negative") {
 
 // Positive test for readNext (trivially copyable)
 TEST_CASE("BinaryDataInterpreter: readNext trivially copyable positive") {
-  const std::array<uint8_t, 5> arr = {0x12, 0x34, 0x56, 0x78};
+  const std::array<uint8_t, 4> arr = {0x12, 0x34, 0x56, 0x78};
   util::BinaryDataInterpreter bdi(arr.data(), 4);
   uint32_t val = 0;
   REQUIRE(bdi.readNext(&val));
