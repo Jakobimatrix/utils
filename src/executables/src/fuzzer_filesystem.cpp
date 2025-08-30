@@ -1,5 +1,5 @@
 /**
- * @file fuzzer_example.hpp
+ * @file fuzzer_filesystem.cpp
  * @brief fuzzer tries to break searchAndReplace.hpp
  * @date 29.05.2025
  * @author Jakob Wandel

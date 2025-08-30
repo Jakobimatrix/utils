@@ -1,3 +1,11 @@
+/**
+ * @file BinaryDataInterpreter.cpp
+ * @brief implementation for the BinaryDataInterpreter class.
+ * @date 29.05.2025
+ * @author Jakob Wandel
+ * @version 1.0
+ **/
+
 #include <utils/data/BinaryDataInterpreter.hpp>
 
 #include <algorithm>

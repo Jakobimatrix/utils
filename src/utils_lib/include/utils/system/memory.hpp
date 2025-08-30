@@ -1,5 +1,5 @@
 /**
- * @file memory.h
+ * @file memory.hpp
  * @brief Provides a cross-platform API to measure the memory usage of the current process.
  *
  * This header file defines a `MemoryUsage` class with a static method `get()`
