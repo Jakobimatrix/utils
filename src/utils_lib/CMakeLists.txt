@@ -16,12 +16,14 @@ if(NOT DEFINED LIBRARY_LIB_VERSION)
       include/utils/templates/TypeContainer.hpp
       include/utils/templates/variadicFunction.hpp
       include/utils/types/constexpr_map.hpp
+      include/utils/types/range.hpp
       src/BinaryDataInterpreter.cpp
       src/demangle.cpp
       src/filesystem.cpp
       src/memory.cpp
       src/searchAndReplace.cpp
       src/variadicFunction.cpp
+      include/utils/types/range.hpp
     )
 
     target_link_libraries(${LIB_NAME}_${LIBRARY_LIB_VERSION}

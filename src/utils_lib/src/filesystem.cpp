@@ -54,4 +54,29 @@ bool hasHiddenElement(const std::filesystem::path& path) noexcept {
 }
 
 
+
+bool isWritable(const std::filesystem::path& source) {
+  namespace fs = std::filesystem;
+
+  if (!fs::exists(source)) {
+    return false;  // does not exist
+  }
+
+  if (fs::is_directory(source)) {
+    // Try creating a temp file inside the directory
+    auto testFile = source / ".writetest.tmp";
+    std::ofstream ofs(testFile.string(), std::ios::out | std::ios::trunc);
+    if (ofs) {
+      ofs.close();
+      fs::remove(testFile);  // cleanup
+      return true;
+    }
+    return false;
+  } else {
+    // It's a file: check if we can open in append/write mode
+    std::ofstream ofs(source, std::ios::app);
+    return ofs.good();
+  }
+}
+
 }  // namespace util

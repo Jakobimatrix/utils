@@ -47,5 +47,13 @@ std::wstring getLastPathComponent(const std::filesystem::directory_entry& entry)
  */
 bool hasHiddenElement(const std::filesystem::path& path) noexcept;
 
+/**
+ * @brief Check if a given path exists and is writable.
+ *
+ * @param source Path to check.
+ * @return true if path exists and is writable, false otherwise.
+ */
+bool isWritable(const std::filesystem::path& source);
+
 
 }  // namespace util
