@@ -11,7 +11,7 @@
 #include <string>
 #include <system_error>
 #include <utils/filesystem/filesystem.hpp>
-
+#include <fstream>
 #include <filesystem>
 
 namespace util {
@@ -72,11 +72,10 @@ bool isWritable(const std::filesystem::path& source) {
       return true;
     }
     return false;
-  } else {
-    // It's a file: check if we can open in append/write mode
-    std::ofstream ofs(source, std::ios::app);
-    return ofs.good();
   }
+  // It's a file: check if we can open in append/write mode
+  const std::ofstream ofs(source, std::ios::app);
+  return ofs.good();
 }
 
 }  // namespace util
