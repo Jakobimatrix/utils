@@ -10,6 +10,7 @@ Checks: |
   misc-*,
   llvm-namespace-comment,
   readability-*,
+  -readability-math-missing-parentheses,
   performance-*,
   # ---- disable diagnostics also found by the compiler ----
   -clang-diagnostic-*,

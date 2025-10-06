@@ -18,7 +18,7 @@ Reusable C++ utility library for cross-project development.
 - Type demangling and debug utilities
 - Bitwise enum operations
 - Type container and template metaprogramming helpers
-- Binary data interpretation
+- Binary data de-/serialization
 - Cross-platform memory usage queries
 
 ## Build
@@ -33,7 +33,7 @@ Reusable C++ utility library for cross-project development.
 
 Include headers from `include/utils/` in your project. Link against the built static library. 
 
-**utils_lib_2.0.0**
+**utils_lib_3.0.0**
 
 
 

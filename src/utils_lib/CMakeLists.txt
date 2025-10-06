@@ -1,14 +1,17 @@
 
 # change the version if there are API changes!
-set(LIB_VERSION "2.0.0")
+set(LIB_VERSION "3.0.0")
 set(LIB_NAME "utils_lib")
 
 if(NOT DEFINED LIBRARY_LIB_VERSION)
     set(LIBRARY_LIB_VERSION ${LIB_VERSION})
 
     add_library(${LIB_NAME}_${LIBRARY_LIB_VERSION} STATIC
-      include/utils/data/BinaryDataInterpreter.hpp
+      include/utils/data/BinaryDataReader.hpp
+      include/utils/data/Serialize.hpp
       include/utils/debug/demangle.hpp
+      include/utils/debug/benchmark.hpp
+      include/utils/debug/logging.hpp
       include/utils/filesystem/filesystem.hpp
       include/utils/string/searchAndReplace.hpp
       include/utils/system/memory.hpp
@@ -17,13 +20,16 @@ if(NOT DEFINED LIBRARY_LIB_VERSION)
       include/utils/templates/variadicFunction.hpp
       include/utils/types/constexpr_map.hpp
       include/utils/types/range.hpp
-      src/BinaryDataInterpreter.cpp
       src/demangle.cpp
       src/filesystem.cpp
       src/memory.cpp
       src/searchAndReplace.cpp
+      src/Serialize.cpp
       src/variadicFunction.cpp
-      include/utils/types/range.hpp
+      include/utils/data/BinaryDataBuffer.hpp
+      include/utils/data/BinaryDataWriter.hpp
+      src/BinaryDataBuffer.cpp
+      include/utils/string/utf8Conversion.hpp
     )
 
     target_link_libraries(${LIB_NAME}_${LIBRARY_LIB_VERSION}

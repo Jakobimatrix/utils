@@ -4,7 +4,6 @@
  *
  * @date 29.05.2025
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 
