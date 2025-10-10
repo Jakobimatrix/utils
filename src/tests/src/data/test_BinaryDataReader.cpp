@@ -15,12 +15,9 @@
 #include <array>
 #include <vector>
 #include <map>
-#include <set>
 #include <cstdint>
 #include <filesystem>
 #include <string>
-#include <utils/data/BinaryDataReader.hpp>
-#include <vector>
 
 // NOLINTBEGIN (readability-magic-numbers) This test uses some random numbers, there is no value in giving them a name
 // Construction from valid data array

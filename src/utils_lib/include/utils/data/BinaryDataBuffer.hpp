@@ -17,13 +17,13 @@ namespace serialize {
 
 
 class BinaryDataBuffer {
-  std::endian endian;
 
  protected:
   // NOLINTBEGIN (misc-non-private-member-variables-in-classes) managed by children
-  mutable size_t cursor = 0;
+  mutable size_t m_cursor = 0;
   bool ready{false};
-  std::vector<uint8_t> buffer;
+  std::vector<uint8_t> m_buffer;
+  std::endian m_endian;
   // NOLINTEND (misc-non-private-member-variables-in-classes)
 
   explicit BinaryDataBuffer(std::endian endian) noexcept;
@@ -32,7 +32,9 @@ class BinaryDataBuffer {
  public:
   using SizeType = uint64_t;
 
-  [[nodiscard]] const std::vector<uint8_t>& getBuffer() const { return buffer; }
+  [[nodiscard]] const std::vector<uint8_t>& getBuffer() const {
+    return m_buffer;
+  }
   [[nodiscard]] std::vector<uint8_t>&& releaseBuffer() noexcept;
 
   /**
@@ -42,10 +44,10 @@ class BinaryDataBuffer {
   [[nodiscard]] bool isReady() const noexcept { return ready; }
 
   /**
-   * @brief Returns the endian the data.
+   * @brief Returns the m_endian the data.
    * @return ho to interpret the data..
    */
-  [[nodiscard]] std::endian getEndian() const noexcept { return endian; }
+  [[nodiscard]] std::endian getEndian() const noexcept { return m_endian; }
 
   /**
    * @brief Sets the cursor to the end of the data.
@@ -58,10 +60,10 @@ class BinaryDataBuffer {
   void setCursorToStart() noexcept;
 
   /**
-   * @brief Gets the current cursor position.
-   * @return The current cursor position.
+   * @brief Gets the current m_cursor position.
+   * @return The current m_cursor position.
    */
-  [[nodiscard]] size_t getCursor() const noexcept { return cursor; }
+  [[nodiscard]] size_t getCursor() const noexcept { return m_cursor; }
 
   /**
    * @brief Gets the number of available bytes.

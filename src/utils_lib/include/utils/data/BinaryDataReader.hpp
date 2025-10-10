@@ -9,8 +9,11 @@
 #pragma once
 
 #include <algorithm>
-#include <utils/data/BinaryDataBuffer.hpp>
-
+#include <bit>
+#include <iterator>
+#include <cstddef>
+#include <limits>
+#include <new>
 #include <array>
 #include <concepts>
 #include <cstdint>
@@ -21,7 +24,6 @@
 #include <iostream>
 #include <list>
 #include <map>
-#include <memory>
 #include <optional>
 #include <set>
 #include <system_error>
@@ -33,7 +35,10 @@
 #include <utility>
 #include <variant>
 #include <vector>
-#include "utils/debug/logging.hpp"
+
+#include <utils/data/BinaryDataBuffer.hpp>
+#include <utils/debug/logging.hpp>
+#include <utils/string/utf8Conversion.hpp>
 
 
 namespace serialize {
@@ -72,7 +77,7 @@ class BinaryDataReader : public BinaryDataBuffer {
       return {};
     }
 
-    std::streamsize size = file.tellg();
+    std::streamsize const size = file.tellg();
 
     if (size < 0) {
       error_code = std::make_error_code(std::errc::io_error);
@@ -106,9 +111,9 @@ class BinaryDataReader : public BinaryDataBuffer {
   BinaryDataReader(const std::filesystem::path& path, std::endian endian) noexcept
       : BinaryDataBuffer(endian) {
     std::error_code error_code;
-    buffer = BinaryDataReader::readFileBinary<uint8_t>(path, error_code);
+    m_buffer = BinaryDataReader::readFileBinary<uint8_t>(path, error_code);
     if (error_code) {
-      log::errorf(CURRENT_SOURCE_LOCATION,
+      dbg::errorf(CURRENT_SOURCE_LOCATION,
                   "Error reading file: {}: {}",
                   path.string(),
                   error_code.message());
@@ -125,7 +130,7 @@ class BinaryDataReader : public BinaryDataBuffer {
    */
   BinaryDataReader(const uint8_t* binary_data, size_t length, bool all_data, std::endian endian) noexcept
       : BinaryDataBuffer(endian) {
-    [[maybe_unused]] bool result = addData(binary_data, length, all_data);
+    [[maybe_unused]] bool const result = addData(binary_data, length, all_data);
   }
 
   /**
@@ -141,8 +146,8 @@ class BinaryDataReader : public BinaryDataBuffer {
                    size_t max_expected_size,
                    std::endian endian) noexcept
       : BinaryDataBuffer(endian) {
-    buffer.reserve(max_expected_size);
-    [[maybe_unused]] bool result = addData(binary_data, length, all_data);
+    m_buffer.reserve(max_expected_size);
+    [[maybe_unused]] bool const result = addData(binary_data, length, all_data);
   }
 
   /**
@@ -152,6 +157,8 @@ class BinaryDataReader : public BinaryDataBuffer {
   BinaryDataReader(std::vector<uint8_t> binary_data, std::endian endian) noexcept
       : BinaryDataBuffer(std::move(binary_data), endian) {}
 
+
+  void setEndian(std::endian endian) { m_endian = endian; }
 
   /**
    * @brief In case not all data was available at construction you can add more data here.
@@ -164,46 +171,46 @@ class BinaryDataReader : public BinaryDataBuffer {
     // constructing from a null pointer. This makes behaviour explicit and
     // matches tests that expect a nullptr constructor to yield not-ready.
     if (binary_data == nullptr) {
-      log::error(CURRENT_SOURCE_LOCATION, "Nullpointer given.");
+      dbg::error(CURRENT_SOURCE_LOCATION, "Nullpointer given.");
       return false;
     }
     if (length == 0 && all_data) {
       ready = all_data;
-      buffer.shrink_to_fit();
+      m_buffer.shrink_to_fit();
       return true;
     }
     if (ready) {
-      log::error(
+      dbg::error(
         CURRENT_SOURCE_LOCATION,
         "You can not add more data. Did you use the wrong constructor?");
       return false;
     }
     if (length != 0) {
       try {
-        buffer.reserve(buffer.size() + length);
+        m_buffer.reserve(m_buffer.size() + length);
         const auto* const begin = binary_data;
         const auto* const end = std::next(begin, static_cast<std::ptrdiff_t>(length));
-        buffer.insert(buffer.end(), begin, end);
+        m_buffer.insert(m_buffer.end(), begin, end);
       } catch (const std::bad_alloc&) {
-        log::error(CURRENT_SOURCE_LOCATION,
+        dbg::error(CURRENT_SOURCE_LOCATION,
                    "Memory allocation failed while adding data.");
         return false;
       }
     }
     ready = all_data;
     if (ready) {
-      buffer.shrink_to_fit();
+      m_buffer.shrink_to_fit();
     }
     return true;
   }
 
   /**
-   * @brief Checks if there is enough data left from the current cursor position.
+   * @brief Checks if there is enough data left from the current m_cursor position.
    * @param requestedSize The number of bytes requested.
    * @return true if enough data is left, false otherwise.
    */
   [[nodiscard]] bool hasDataLeft(size_t requestedSize) const noexcept {
-    return ready && (cursor + requestedSize <= buffer.size());
+    return ready && (m_cursor + requestedSize <= m_buffer.size());
   }
 
   /**
@@ -211,7 +218,7 @@ class BinaryDataReader : public BinaryDataBuffer {
    * @return The number of unread bytes.
    */
   [[nodiscard]] size_t getNumUnreadBytes() const noexcept {
-    return buffer.size() - cursor;
+    return m_buffer.size() - m_cursor;
   }
 
   /**
@@ -223,58 +230,58 @@ class BinaryDataReader : public BinaryDataBuffer {
     if (!hasDataLeft(bytes.size())) {
       return false;
     }
-    // Cast cursor to difference_type to avoid sign-conversion warning
-    auto offset = static_cast<std::vector<uint8_t>::difference_type>(cursor);
-    return std::equal(bytes.begin(), bytes.end(), buffer.begin() + offset);
+    // Cast m_cursor to difference_type to avoid sign-conversion warning
+    auto offset = static_cast<std::vector<uint8_t>::difference_type>(m_cursor);
+    return std::equal(bytes.begin(), bytes.end(), m_buffer.begin() + offset);
   }
 
   /**
-   * @brief Advances the cursor by a given size.
+   * @brief Advances the m_cursor by a given size.
    * @param size The number of bytes to advance.
-   * @return true if the cursor was advanced, false if not enough data.
+   * @return true if the m_cursor was advanced, false if not enough data.
    */
   [[nodiscard]] bool advanceCursor(size_t size) const noexcept {
     if (!hasDataLeft(size)) {
       return false;
     }
-    cursor += size;
+    m_cursor += size;
     return true;
   }
 
   /**
-   * @brief Advances the cursor if the next bytes match the given bytes.
+   * @brief Advances the m_cursor if the next bytes match the given bytes.
    * @param bytes The bytes to compare.
-   * @return true if the cursor was advanced, false otherwise.
+   * @return true if the m_cursor was advanced, false otherwise.
    */
   [[nodiscard]] bool advanceCursorIfEqual(const std::vector<uint8_t>& bytes) const noexcept {
     if (nextBytesEqual(bytes)) {
-      cursor += bytes.size();
+      m_cursor += bytes.size();
       return true;
     }
     return false;
   }
 
   /**
-   * @brief Finds the next occurrence of the given bytes and advances the cursor.
+   * @brief Finds the next occurrence of the given bytes and advances the m_cursor.
    * @param bytes The bytes to search for.
-   * @param advanceBeyond If true, advances cursor beyond the found bytes.
-   * @return true if the bytes were found and cursor advanced, false otherwise.
+   * @param advanceBeyond If true, advances m_cursor beyond the found bytes.
+   * @return true if the bytes were found and m_cursor advanced, false otherwise.
    */
   [[nodiscard]] bool findNextBytesAndAdvance(const std::vector<uint8_t>& bytes,
                                              bool advanceBeyond) const noexcept {
-    if (!ready || bytes.empty() || cursor >= buffer.size()) {
+    if (!ready || bytes.empty() || m_cursor >= m_buffer.size()) {
       return false;
     }
-    // Cast cursor to difference_type to avoid sign-conversion warning
-    auto offset = static_cast<std::vector<uint8_t>::difference_type>(cursor);
-    auto it =
-      std::search(buffer.begin() + offset, buffer.end(), bytes.begin(), bytes.end());
-    if (it == buffer.end()) {
+    // Cast m_cursor to difference_type to avoid sign-conversion warning
+    auto offset = static_cast<std::vector<uint8_t>::difference_type>(m_cursor);
+    auto it     = std::search(
+      m_buffer.begin() + offset, m_buffer.end(), bytes.begin(), bytes.end());
+    if (it == m_buffer.end()) {
       return false;
     }
-    cursor = static_cast<size_t>(std::distance(buffer.begin(), it));
+    m_cursor = static_cast<size_t>(std::distance(m_buffer.begin(), it));
     if (advanceBeyond) {
-      cursor += bytes.size();
+      m_cursor += bytes.size();
     }
     return true;
   }
@@ -289,12 +296,14 @@ class BinaryDataReader : public BinaryDataBuffer {
    */
   template <typename T>
   [[nodiscard]] bool readNext(std::optional<T>* value) const noexcept {
-    if (!value || !ready)
+    if (!value || !ready) {
       return false;
+    }
 
     bool hasValue{};
-    if (!readNext(&hasValue))
+    if (!readNext(&hasValue)) {
       return false;
+    }
 
     if (!hasValue) {
       *value = std::nullopt;
@@ -302,8 +311,9 @@ class BinaryDataReader : public BinaryDataBuffer {
     }
 
     T elem{};
-    if (!readNext(&elem))
+    if (!readNext(&elem)) {
       return false;
+    }
     *value = std::move(elem);
     return true;
   }
@@ -318,12 +328,14 @@ class BinaryDataReader : public BinaryDataBuffer {
    */
   template <typename... Ts>
   [[nodiscard]] bool readNext(std::variant<Ts...>* value) const noexcept {
-    if (!value || !ready)
+    if (!value || !ready) {
       return false;
+    }
 
     size_t index{};
-    if (!readNext(&index))
+    if (!readNext(&index)) {
       return false;
+    }
 
     if (index >= sizeof...(Ts)) {
       return false;  // invalid variant index
@@ -617,11 +629,11 @@ class BinaryDataReader : public BinaryDataBuffer {
   }
 
   /**
-   * @brief Returns an constant iterator to the curent cursor position of the data vector.
-   * @return constant iterator to the data vector advanced to the current cursor position.
+   * @brief Returns an constant iterator to the curent m_cursor position of the data vector.
+   * @return constant iterator to the data vector advanced to the current m_cursor position.
    */
   [[nodiscard]] std::vector<uint8_t>::const_iterator getReadBegin() const noexcept {
-    return std::next(buffer.cbegin(), static_cast<std::ptrdiff_t>(cursor));
+    return std::next(m_buffer.cbegin(), static_cast<std::ptrdiff_t>(m_cursor));
   }
 
   /**
@@ -641,7 +653,7 @@ class BinaryDataReader : public BinaryDataBuffer {
    * @return The binaries.
    */
   [[nodiscard]] const std::vector<uint8_t>& getData() const noexcept {
-    return buffer;
+    return m_buffer;
   }
 
   /**
@@ -656,8 +668,8 @@ class BinaryDataReader : public BinaryDataBuffer {
     if (!readNext(&temp)) {
       return false;
     }
-    if (temp > static_cast<SizeType>(std::numeric_limits<std::size_t>::max())) {
-      log::errorf(CURRENT_SOURCE_LOCATION,
+    if (temp > static_cast<SizeType>(std::numeric_limits<T>::max())) {
+      dbg::errorf(CURRENT_SOURCE_LOCATION,
                   "Your data origenates from a 64 bit system! You tried to "
                   "read a size (64 bit) with value {} but your size type in "
                   "only 32 bit and overflows!",
@@ -685,8 +697,21 @@ class BinaryDataReader : public BinaryDataBuffer {
     }
     const auto readIterators = getReadBeginAndEnd(length);
     value->assign(readIterators.first, readIterators.second);
-    cursor += length;
+    m_cursor += length;
     return true;
+  }
+
+  /**
+   * @brief Reads the next bytes as a wstring of given length.
+   * @param value Pointer to the wstring to store the result.
+   * @return true if successful, false otherwise.
+   */
+  [[nodiscard]] bool readNext(std::wstring* value) const noexcept {
+    std::string tmp;
+    if (readNext(&tmp)) {
+      return util::utf8ToWstring(tmp, value);
+    }
+    return false;
   }
 
   /**
@@ -702,6 +727,40 @@ class BinaryDataReader : public BinaryDataBuffer {
   }
 
   /**
+   * @brief Read a std::bitset<N> stored as the smallest integer that fits (up to 64 bits).
+   * @tparam N number of bits (must be <= 64)
+   */
+  template <std::size_t N>
+    requires(N > 0 && N <= 64)
+  bool readNext(std::bitset<N>* value) const noexcept {
+    if constexpr (N <= 8) {
+      uint8_t tmp{};
+      if (!readNext(&tmp))
+        return false;
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else if constexpr (N <= 16) {
+      uint16_t tmp{};
+      if (!readNext(&tmp))
+        return false;
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else if constexpr (N <= 32) {
+      uint32_t tmp{};
+      if (!readNext(&tmp))
+        return false;
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else {
+      uint64_t tmp{};
+      if (!readNext(&tmp))
+        return false;
+      *value = std::bitset<N>(tmp);
+      return true;
+    }
+  }
+
+  /**
    * @brief Read a trivially scalar value from the buffer.
    * @tparam T Integral, floating-point.
    * @param value Pointer to the value to store the result.
@@ -711,19 +770,21 @@ class BinaryDataReader : public BinaryDataBuffer {
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool readNext(T* value) const {
 
-    const uint8_t* src = buffer.data() + cursor;
+    const uint8_t* src = m_buffer.data() + m_cursor;
 
     if (!hasDataLeft(sizeof(T))) {
       return false;
     }
 
-    cursor += sizeof(T);
+    m_cursor += sizeof(T);
 
     using UnsignedT = std::make_unsigned_t<T>;
     using IntType =
       std::conditional_t<std::is_floating_point_v<T>, std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>, UnsignedT>;
 
     IntType bits;
+
+    constexpr size_t SIZE_BYTE{8};
 
     if constexpr (sizeof(T) == 1) {
       bits = *src;
@@ -733,11 +794,11 @@ class BinaryDataReader : public BinaryDataBuffer {
       bits = 0;
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(src[i]) << (i * 8);
+          bits |= static_cast<IntType>(src[i]) << (i * SIZE_BYTE);
         }
       } else {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(src[i]) << ((sizeof(T) - 1 - i) * 8);
+          bits |= static_cast<IntType>(src[i]) << ((sizeof(T) - 1 - i) * SIZE_BYTE);
         }
       }
     }
@@ -752,10 +813,11 @@ class BinaryDataReader : public BinaryDataBuffer {
 
   // Special-case bool to avoid instantiating make_unsigned<bool>.
   bool readNext(bool* value) const noexcept {
-    if (!hasDataLeft(1))
+    if (!hasDataLeft(1)) {
       return false;
-    const uint8_t* src  = buffer.data() + cursor;
-    cursor             += 1;
+    }
+    const uint8_t* src  = m_buffer.data() + m_cursor;
+    m_cursor           += 1;
     *value              = (*src != 0);
     return true;
   }
@@ -798,13 +860,13 @@ class BinaryDataReader : public BinaryDataBuffer {
       if (I == index) {
         using Alt = std::variant_alternative_t<I, Variant>;
         Alt elem{};
-        if (!reader.readNext(&elem))
+        if (!reader.readNext(&elem)) {
           return false;
+        }
         var = std::move(elem);
         return true;
-      } else {
-        return readVariantImpl<Variant, I + 1>(reader, index, var);
       }
+      return readVariantImpl<Variant, I + 1>(reader, index, var);
     }
   }
 };

@@ -8,31 +8,27 @@
 
 #pragma once
 
-#include <utils/data/BinaryDataBuffer.hpp>
-
-#include <array>
-#include <concepts>
+#include <bit>
+#include <algorithm>
+#include <new>
 #include <cstdint>
 #include <cstring>
 #include <deque>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
 #include <list>
 #include <map>
-#include <memory>
 #include <optional>
 #include <set>
-#include <system_error>
 #include <string>
-#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
-#include "utils/debug/logging.hpp"
+
+#include <utils/data/BinaryDataBuffer.hpp>
+#include <utils/debug/logging.hpp>
+#include <utils/string/utf8Conversion.hpp>
 
 namespace serialize {
 
@@ -40,49 +36,47 @@ class BinaryDataWriter : public BinaryDataBuffer {
  public:
   /**
    * @brief Constructs a binary data writer with size constraints
-   * @param minExpectedSize The initial size to resize the buffer to
-   * @param maxExpectedSize The maximum allowed size the buffer can grow to
+   * @param minExpectedSize The initial size to resize the m_buffer to
+   * @param maxExpectedSize The maximum allowed size the m_buffer can grow to
    */
   BinaryDataWriter(uint32_t minExpectedSize, uint32_t maxExpectedSize, std::endian endian) noexcept
       : BinaryDataBuffer(endian),
         maxExpectedSize_(maxExpectedSize) {
-    if (minExpectedSize > maxExpectedSize) {
-      minExpectedSize = maxExpectedSize;
-    }
-    buffer.resize(minExpectedSize);
-    cursor = 0;
-    ready  = false;
+    minExpectedSize = std::min(minExpectedSize, maxExpectedSize);
+    m_buffer.resize(minExpectedSize);
+    m_cursor = 0;
+    ready    = false;
   }
 
   /**
-   * @brief Creates a writer from a reader's buffer (or rather its parent)
-   * @param reader The reader to take the buffer from
-   * @return A new writer containing the reader's buffer
+   * @brief Creates a writer from a reader's m_buffer (or rather its parent)
+   * @param reader The reader to take the m_buffer from
+   * @return A new writer containing the reader's m_buffer
    */
   template <class BinaryDataBufferChild>
   static BinaryDataWriter fromReader(BinaryDataBufferChild&& reader) {
-    auto data     = std::move(reader.releaseBuffer());
-    auto size     = data.size();
-    auto writer   = BinaryDataWriter(size, size, reader.getEndian());
-    writer.buffer = std::move(data);
+    auto data       = std::move(reader.releaseBuffer());
+    auto size       = data.size();
+    auto writer     = BinaryDataWriter(size, size, reader.getEndian());
+    writer.m_buffer = std::move(data);
     return writer;
   }
 
   /**
-   * @brief Indicates that all data has been written and shrinks buffer to fit
-   * @return true if successful, false if buffer is empty
+   * @brief Indicates that all data has been written and shrinks m_buffer to fit
+   * @return true if successful, false if m_buffer is empty
    */
   bool setWritingFinished() noexcept {
-    if (buffer.empty()) {
+    if (m_buffer.empty()) {
       return false;
     }
-    buffer.shrink_to_fit();
+    m_buffer.shrink_to_fit();
     ready = true;
     return true;
   }
 
   /**
-   * @brief Writes a string at the current cursor position
+   * @brief Writes a string at the current m_cursor position
    * @param value The string to write
    * @return true if successful, false if would exceed maxExpectedSize
    */
@@ -97,10 +91,47 @@ class BinaryDataWriter : public BinaryDataBuffer {
     }
 
     if (!value.empty()) {
-      std::memcpy(buffer.data() + cursor, value.data(), value.size());
-      cursor += value.size();
+      std::memcpy(m_buffer.data() + m_cursor, value.data(), value.size());
+      m_cursor += value.size();
     }
     return true;
+  }
+
+  /**
+   * @brief Writes a wstring at the current m_cursor position
+   * @param value The wstring to write
+   * @return true if successful, false if would exceed maxExpectedSize
+   */
+  bool writeNext(const std::wstring& value) noexcept {
+
+    std::string utf8_string;
+    if (util::wstringToUtf8(value, &utf8_string)) {
+      return writeNext(utf8_string);
+    }
+    return false;
+  }
+
+  /**
+   * @brief Writes a std::bitset<N> as the smallest fixed integer that fits (up to 64 bits).
+   * @tparam N number of bits (must be <= 64)
+   */
+  template <std::size_t N>
+    requires(N > 0 && N <= 64)
+  bool writeNext(const std::bitset<N>& bits) noexcept {
+    // choose storage size
+    if constexpr (N <= 8) {
+      uint8_t v = static_cast<uint8_t>(bits.to_ulong());
+      return writeNext(v);
+    } else if constexpr (N <= 16) {
+      uint16_t v = static_cast<uint16_t>(bits.to_ulong());
+      return writeNext(v);
+    } else if constexpr (N <= 32) {
+      uint32_t v = static_cast<uint32_t>(bits.to_ullong());
+      return writeNext(v);
+    } else {
+      uint64_t v = static_cast<uint64_t>(bits.to_ullong());
+      return writeNext(v);
+    }
   }
 
   /**
@@ -112,7 +143,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename T>
   bool writeNext(const std::optional<T>& value) noexcept {
     if (!writeNext(value.has_value())) {
-      return false;  // TODO write bool false!!!
+      return false;
     }
     if (value) {
       return writeNext(*value);
@@ -357,7 +388,10 @@ class BinaryDataWriter : public BinaryDataBuffer {
       }
     }();
 
-    uint8_t* dest = buffer.data() + cursor;
+    uint8_t* dest = m_buffer.data() + m_cursor;
+
+    constexpr size_t SIZE_BYTE{8};
+    constexpr size_t BYTE_MASK{0xFF};
 
     if constexpr (sizeof(T) == 1) {
       *dest = static_cast<uint8_t>(bits);
@@ -366,16 +400,17 @@ class BinaryDataWriter : public BinaryDataBuffer {
     } else {
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          dest[i] = static_cast<uint8_t>((bits >> (i * 8)) & 0xFF);
+          dest[i] = static_cast<uint8_t>((bits >> (i * SIZE_BYTE)) & BYTE_MASK);
         }
       } else {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          dest[i] = static_cast<uint8_t>((bits >> ((sizeof(T) - 1 - i) * 8)) & 0xFF);
+          dest[i] =
+            static_cast<uint8_t>((bits >> ((sizeof(T) - 1 - i) * SIZE_BYTE)) & BYTE_MASK);
         }
       }
     }
 
-    cursor += sizeof(T);
+    m_cursor += sizeof(T);
 
     return true;
   }
@@ -398,7 +433,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
 
  private:
   /**
-   * @brief Resizes the buffer if needed for additional data
+   * @brief Resizes the m_buffer if needed for additional data
    * @param additional_size Size of data to be added
    * @return true if resize was successful or not needed, false if would exceed maxExpectedSize
    */
@@ -407,17 +442,17 @@ class BinaryDataWriter : public BinaryDataBuffer {
       return true;
     }
 
-    if (cursor + additional_size > maxExpectedSize_) {
-      log::error(CURRENT_SOURCE_LOCATION,
+    if (m_cursor + additional_size > maxExpectedSize_) {
+      dbg::error(CURRENT_SOURCE_LOCATION,
                  "Writing would exceed maxExpectedSize.");
       return false;
     }
 
-    if (cursor + additional_size > buffer.size()) {
+    if (m_cursor + additional_size > m_buffer.size()) {
       try {
-        buffer.resize(cursor + additional_size);
+        m_buffer.resize(m_cursor + additional_size);
       } catch (const std::bad_alloc&) {
-        log::error(CURRENT_SOURCE_LOCATION,
+        dbg::error(CURRENT_SOURCE_LOCATION,
                    "Memory allocation failed while resizing buffer.");
         return false;
       }
@@ -462,13 +497,11 @@ class BinaryDataWriter : public BinaryDataBuffer {
    */
   template <typename Container>
   size_t estimateContainerSize(const Container& container) noexcept {
-    using SizeType = typename Container::size_type;
-    size_t total   = sizeof(SizeType);  // Size of container's size
+    size_t total = sizeof(typename Container::size_type);
 
     if constexpr (std::is_trivially_copyable_v<typename Container::value_type>) {
       total += container.size() * sizeof(typename Container::value_type);
     } else {
-      // For non-trivial types, we need to estimate each element
       for (const auto& element : container) {
         total += estimateElementSize(element);
       }
@@ -484,8 +517,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
    */
   template <typename Map>
   size_t estimateMapSize(const Map& map) noexcept {
-    using SizeType = typename Map::size_type;
-    size_t total   = sizeof(SizeType);  // Size of map's size
+    size_t total = sizeof(typename Map::size_type);
 
     for (const auto& [key, value] : map) {
       total += estimateElementSize(key);

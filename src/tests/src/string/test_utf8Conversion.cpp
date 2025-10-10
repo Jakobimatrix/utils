@@ -64,7 +64,7 @@ static void test_range(uint32_t start, uint32_t end, bool expect_success) {
 
     INFO("Codepoint: 0x" << std::hex << cp);
 
-    bool enc_ok = util::wstring_to_utf8(wstr, utf8);
+    bool enc_ok = util::wstringToUtf8(wstr, &utf8);
     if (!expect_success) {
       REQUIRE_FALSE(enc_ok);
       continue;
@@ -72,7 +72,7 @@ static void test_range(uint32_t start, uint32_t end, bool expect_success) {
     REQUIRE(enc_ok);
 
     std::wstring decoded;
-    bool dec_ok = util::utf8_to_wstring(utf8, decoded);
+    bool dec_ok = util::utf8ToWstring(utf8, &decoded);
     REQUIRE(dec_ok);
     REQUIRE(decoded == wstr);
   }
@@ -101,7 +101,7 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
   // Lone continuation bytes (should all fail)
   for (unsigned char c = 0x80; c <= 0xBF; ++c) {
     std::string s(1, static_cast<char>(c));
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Overlong encodings (3× each type)
@@ -114,7 +114,7 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
     "\xC0\x81"           // overlong 'A'
   };
   for (auto& s : overlong_examples) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Truncated sequences (missing bytes)
@@ -124,7 +124,7 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
     "\xF0\x9F\x98"  // missing 4th byte
   };
   for (auto& s : truncated_examples) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Invalid continuation placement (continuation after ASCII)
@@ -134,7 +134,7 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
     std::string({static_cast<char>(0x7F), static_cast<char>(0x80)}),
     std::string({'A', static_cast<char>(0x80)})};
   for (auto& s : invalid_continuation) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Surrogate halves (illegal range U+D800–U+DFFF)
@@ -145,7 +145,7 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
     "\xED\xBF\xBF"   // DFFF
   };
   for (auto& s : surrogate_examples) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Codepoints beyond Unicode range (>= 0x110000)
@@ -155,20 +155,20 @@ TEST_CASE("Invalid UTF-8 sequences are rejected") {
     "\xF8\x88\x80\x80"   // 0x220000 (illegal 5-byte start)
   };
   for (auto& s : too_large_examples) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Invalid start bytes (0xF5–0xFF are never valid)
   for (uint32_t c = 0xF5; c <= 0xFF; ++c) {
     std::string s(1, static_cast<char>(c));
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 
   // Mixed valid + invalid (must fail)
   const std::string mixed_invalid[] = {
     "Hello\x80World", "Valid\xC2\xA2\xE2\x82Trunc", "🙂\xED\xA0\x80"};
   for (auto& s : mixed_invalid) {
-    REQUIRE_FALSE(util::utf8_to_wstring(s, decoded));
+    REQUIRE_FALSE(util::utf8ToWstring(s, &decoded));
   }
 }
 
@@ -200,24 +200,24 @@ TEST_CASE(
 #endif
 
   std::string out_utf8;
-  REQUIRE(wstring_to_utf8(wstr, out_utf8));
+  REQUIRE(wstringToUtf8(wstr, &out_utf8));
 
   INFO("UTF-8 output: " << out_utf8);
   REQUIRE(out_utf8 == expected_utf8);
 
   // Now simulate the reverse: read UTF-8 file and decode to wstring
   std::wstring decoded_wstr;
-  REQUIRE(utf8_to_wstring(expected_utf8, decoded_wstr));
+  REQUIRE(utf8ToWstring(expected_utf8, &decoded_wstr));
 
 #if WCHAR_MAX == 0xFFFF
   // On Windows, re-encode to UTF-8 should yield same expected UTF-8
   std::string utf8_again;
-  REQUIRE(wstring_to_utf8(decoded_wstr, utf8_again));
+  REQUIRE(wstringToUtf8(decoded_wstr, &utf8_again));
   REQUIRE(utf8_again == expected_utf8);
 #else
   // On Linux, the wstring is UTF-32, still yields same UTF-8
   std::string utf8_again;
-  REQUIRE(wstring_to_utf8(decoded_wstr, utf8_again));
+  REQUIRE(wstringToUtf8(decoded_wstr, &utf8_again));
   REQUIRE(utf8_again == expected_utf8);
 #endif
 }
@@ -331,7 +331,7 @@ TEST_CASE(
     std::wstring out_wstr;
     INFO("UTF-8 bytes: ");
     INFO("\nExpected wstring size: " << expected_wstr.size());
-    REQUIRE(utf8_to_wstring(utf8_bytes, out_wstr));
+    REQUIRE(utf8ToWstring(utf8_bytes, &out_wstr));
     REQUIRE(out_wstr == expected_wstr);
   }
 }
@@ -350,7 +350,7 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
   };
   for (auto const& s : overlong) {
     // should not throw (functions are noexcept), must return false and leave out empty
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
@@ -360,7 +360,7 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
     "\xED\xBF\xBF"   // U+DFFF (low surrogate)
   };
   for (auto const& s : surrogate_utf8) {
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
@@ -372,7 +372,7 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
     "\x7F\x80"               // ASCII boundary then continuation
   };
   for (auto const& s : lone_cont) {
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
@@ -383,14 +383,14 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
     "\xF0\x9F\x98"  // 4-byte truncated (emoji)
   };
   for (auto const& s : truncated) {
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
   // Invalid start bytes (0xF5..0xFF) never valid in UTF-8
   for (uint32_t b = 0xF5; b <= 0xFF; ++b) {
     std::string s(1, static_cast<char>(b));
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
@@ -400,7 +400,7 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
     "\xF7\xBF\xBF\xBF"   // illegal 5-byte style
   };
   for (auto const& s : out_of_range) {
-    REQUIRE_FALSE(utf8_to_wstring(s, out));
+    REQUIRE_FALSE(utf8ToWstring(s, &out));
     REQUIRE(out.empty());
   }
 
@@ -409,13 +409,13 @@ TEST_CASE("utf8_to_wstring: rejects overlong encodings and malformed bytes") {
   std::wstring out2;
   const std::string with_null = std::string({'A', '\0', 'B'});  // bytes: 0x41 0x00 0x42
   // This is valid UTF-8 (ASCII + NUL + ASCII)
-  REQUIRE(utf8_to_wstring(with_null, out2));
+  REQUIRE(utf8ToWstring(with_null, &out2));
   REQUIRE(out2.size() == 3);
   REQUIRE(out2[1] == L'\0');  // NUL preserved inside std::wstring
 }
 
 TEST_CASE(
-  "wstring_to_utf8: rejects malformed surrogate pairs and invalid wchars") {
+  "wstringToUtf8: rejects malformed surrogate pairs and invalid wchars") {
   using namespace util;
   std::string out;
 
@@ -424,14 +424,14 @@ TEST_CASE(
   {
     std::wstring bad;
     bad.push_back(static_cast<wchar_t>(0xD800));  // lone high surrogate
-    REQUIRE_FALSE(wstring_to_utf8(bad, out));
+    REQUIRE_FALSE(wstringToUtf8(bad, &out));
     REQUIRE(out.empty());
   }
   // Lone low surrogate
   {
     std::wstring bad;
     bad.push_back(static_cast<wchar_t>(0xDC00));  // lone low surrogate
-    REQUIRE_FALSE(wstring_to_utf8(bad, out));
+    REQUIRE_FALSE(wstringToUtf8(bad, &out));
     REQUIRE(out.empty());
   }
   // Reversed pair (low then high) should be rejected
@@ -439,7 +439,7 @@ TEST_CASE(
     std::wstring bad;
     bad.push_back(static_cast<wchar_t>(0xDC00));
     bad.push_back(static_cast<wchar_t>(0xD800));
-    REQUIRE_FALSE(wstring_to_utf8(bad, out));
+    REQUIRE_FALSE(wstringToUtf8(bad, &out));
     REQUIRE(out.empty());
   }
 #else
@@ -448,13 +448,13 @@ TEST_CASE(
   {
     std::wstring bad;
     bad.push_back(static_cast<wchar_t>(0xD800));
-    REQUIRE_FALSE(wstring_to_utf8(bad, out));
+    REQUIRE_FALSE(wstringToUtf8(bad, &out));
     REQUIRE(out.empty());
   }
   {
     std::wstring bad;
     bad.push_back(static_cast<wchar_t>(0xDC00));
-    REQUIRE_FALSE(wstring_to_utf8(bad, out));
+    REQUIRE_FALSE(wstringToUtf8(bad, &out));
     REQUIRE(out.empty());
   }
 #endif
@@ -466,7 +466,7 @@ TEST_CASE(
     // U+1F600 => surrogate pair D83D DE00
     good.push_back(static_cast<wchar_t>(0xD83D));
     good.push_back(static_cast<wchar_t>(0xDE00));
-    REQUIRE(wstring_to_utf8(good, out));
+    REQUIRE(wstringToUtf8(good, &out));
     REQUIRE(!out.empty());
     // quick sanity: must equal known bytes
     REQUIRE(out == std::string("\xF0\x9F\x98\x80", 4));
@@ -475,7 +475,7 @@ TEST_CASE(
   {
     std::wstring good;
     good.push_back(static_cast<wchar_t>(0x1F600));
-    REQUIRE(wstring_to_utf8(good, out));
+    REQUIRE(wstringToUtf8(good, &out));
     REQUIRE(!out.empty());
     REQUIRE(out == std::string("\xF0\x9F\x98\x80", 4));
   }
@@ -492,7 +492,7 @@ TEST_CASE(
     for (int i = 0; i < 1000; ++i)
       many.push_back(static_cast<wchar_t>(0x1F600));
 #endif
-    REQUIRE(wstring_to_utf8(many, out));
+    REQUIRE(wstringToUtf8(many, &out));
     REQUIRE(!out.empty());
   }
 }

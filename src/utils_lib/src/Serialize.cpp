@@ -3,42 +3,50 @@
  * @brief implementation for the Serializable class.
  * @date 01.10.2025
  * @author Jakob Wandel
- * @version 1.0
+ * @m_version 1.0
  **/
 
 
+#include <cstdint>
+#include <cstddef>
+#include <span>
 #include <utils/data/Serialize.hpp>
+#include <utils/debug/logging.hpp>
+#include "utils/data/BinaryDataWriter.hpp"
+#include "utils/data/BinaryDataReader.hpp"
+#include <vector>
 
 
 namespace serialize {
 
 
-Header::Header(uint16_t id, uint16_t version, uint64_t size, int32_t checksum, int64_t timestamp)
-    : checksum(checksum),
-      id(id),
-      version(version),
-      size(size),
-      timestamp(timestamp) {}
-Header::Header(uint16_t id, uint16_t version, uint64_t size)
-    : id(id),
-      version(version),
-      size(size) {}
+
+Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t checksum, int64_t timestamp)
+    : m_checksum(checksum),
+      m_id(id),
+      m_version(version),
+      m_flags(flags),
+      m_size(size),
+      m_timestamp(timestamp) {}
+Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags)
+    : Header(id, version, size, flags, NO_CHECKSUM, NO_TIMESTAMP) {}
 
 bool Header::serialize(BinaryDataWriter& writer) const {
-  return writer.writeNext(checksum) && writer.writeNext(id) &&
-         writer.writeNext(version) && writer.writeNext(size) &&
-         writer.writeNext(timestamp);
+  return writer.writeNext(m_checksum) && writer.writeNext(m_id) &&
+         writer.writeNext(m_version) && writer.writeNext(m_flags) &&
+         writer.writeNext(m_size) && writer.writeNext(m_timestamp);
 }
 
 bool Header::deserialize(const BinaryDataReader& reader) {
-  return reader.readNext(&checksum) && reader.readNext(&id) &&
-         reader.readNext(&version) && reader.readNext(&size) &&
-         reader.readNext(&timestamp);
+  return reader.readNext(&m_checksum) && reader.readNext(&m_id) &&
+         reader.readNext(&m_version) && reader.readNext(&m_flags) &&
+         reader.readNext(&m_size) && reader.readNext(&m_timestamp);
 }
 
-Serializable::Serializable(uint16_t version, uint16_t id)
-    : id(id),
-      version(version) {}
+
+Serializable::Serializable(uint8_t version, uint16_t id)
+    : m_id(id),
+      m_version(version) {}
 
 
 bool Serializable::serialize(BinaryDataWriter& writer) const {
@@ -69,7 +77,14 @@ bool Serializable::serialize(BinaryDataWriter& writer) const {
                                             &buffer[cursor_after_class]};
   const int32_t checksum = Header::calculateChecksum(class_data);
   const size_t size      = cursor_after_class - cursor_after_header;
-  header = Header(id, version, static_cast<uint64_t>(size), checksum, Header::nowInMs());
+  serialize::Flags flags;
+  // set endian flag from writer endian
+  flags.setEndian(writer.getEndian());
+  // enable checksum and timestamp by default
+  flags.setControlHash(true);
+  flags.setTime(true);
+  header = Header(
+    m_id, m_version, static_cast<uint64_t>(size), flags, checksum, Header::nowInMs());
 
   if (!writer.writeNext(header)) {
     return false;
@@ -79,7 +94,7 @@ bool Serializable::serialize(BinaryDataWriter& writer) const {
 }
 
 bool Serializable::deserialize(const BinaryDataReader& reader) {
-  Header header{0, 0, 0};
+  Header header;
   if (!reader.readNext(&header)) {
     return false;
   }
@@ -89,20 +104,25 @@ bool Serializable::deserialize(const BinaryDataReader& reader) {
 
 bool Serializable::deserialize(const BinaryDataReader& reader, const Header& header_deseriaized) {
 
-  if (header_deseriaized.getId() != id) {
+  if (header_deseriaized.getId() != m_id) {
     return false;
   }
 
-  if (header_deseriaized.getVersion() != version) {
-    log::warningf(CURRENT_SOURCE_LOCATION,
+
+  if (reader.getEndian() != header_deseriaized.getEndian()) {
+    return false;
+  }
+
+  if (header_deseriaized.getVersion() != m_version) {
+    dbg::warningf(CURRENT_SOURCE_LOCATION,
                   "Deserialize Object No. {} from version {} to version {}",
-                  id,
+                  m_id,
                   header_deseriaized.getVersion(),
-                  version);
+                  m_version);
   }
 
   if (!reader.hasDataLeft(header_deseriaized.getSize())) {
-    log::errorf(CURRENT_SOURCE_LOCATION,
+    dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected {} byts but got only {}",
                 header_deseriaized.getSize(),
                 reader.getNumUnreadBytes());
@@ -117,7 +137,7 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
   const uint64_t readBytes        = cursor_after_class - cursor_before_class;
 
   if (header_deseriaized.getSize() != static_cast<uint64_t>(readBytes)) {
-    log::errorf(CURRENT_SOURCE_LOCATION,
+    dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected size {} does not match number of read bytes {}",
                 header_deseriaized.getSize(),
                 readBytes);
@@ -130,7 +150,7 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
   const int32_t checksum = Header::calculateChecksum(class_data);
 
   if (header_deseriaized.getChecksum() != checksum) {
-    log::warning(CURRENT_SOURCE_LOCATION,
+    dbg::warning(CURRENT_SOURCE_LOCATION,
                  "The expected checksum does not match the calculated from the "
                  "received data.");
     return false;

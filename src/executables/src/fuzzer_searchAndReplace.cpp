@@ -6,8 +6,10 @@
  * @version 1.0
  **/
 
+// NOLINTBEGIN(misc-include-cleaner) // depends on the cmake configuration
 #include <iostream>
-#include <utils/data/BinaryDataInterpreter.hpp>
+#include <bit>
+#include <utils/data/BinaryDataReader.hpp>
 #include <utils/string/searchAndReplace.hpp>
 
 #include <cstdint>
@@ -17,7 +19,7 @@
 #include <utility>
 #include <system_error>
 #include <vector>
-
+// NOLINTEND(misc-include-cleaner)
 namespace {
 /**
  * @brief This function uses the given data to create strings for search and replace. Than calls the functions in searchAndReplace.hpp.
@@ -25,7 +27,7 @@ namespace {
  * @param data Pointer to data begin.
  * @param size Size of the Data.
  */
-constexpr void callSearchAndReplace(util::BinaryDataInterpreter& data) {
+constexpr void callSearchAndReplace(serialize::BinaryDataReader& data) {
   const std::vector<uint8_t> start_marker = {255, 0, 255, 0};
   const std::vector<uint8_t> end_marker   = {0, 0, 0, 0};
 
@@ -33,22 +35,9 @@ constexpr void callSearchAndReplace(util::BinaryDataInterpreter& data) {
 
   // Try to extract three strings
   for (int i = 0; i < 3; ++i) {
-    if (!data.findNextBytesAndAdvance(start_marker, true)) {
-      break;
-    }
-
-    const size_t str_start = data.getCursor();
-    if (!data.findNextBytesAndAdvance(end_marker, false)) {
-      break;
-    }
-    const size_t str_end = data.getCursor();
-    if (!data.setCursor(str_start)) {
-      __builtin_trap();  // This should not happen! str_start was read succesfully, we can always advance behind it
-    }
     std::string stringValue;
-    if (!data.readNext(&stringValue, str_end - str_start)) {
-      std::cerr << "Failed to read next bytes after start marker.\n";
-      break;
+    if (!data.readNext(&stringValue)) {
+      return;
     }
     extracted_strings.push_back(std::move(stringValue));
   }
@@ -68,7 +57,8 @@ constexpr void callSearchAndReplace(util::BinaryDataInterpreter& data) {
 
 extern "C" int LLVMFuzzerTestOneInput(const unsigned char* binary_data, unsigned long size) {
 
-  util::BinaryDataInterpreter data{binary_data, static_cast<size_t>(size)};
+  serialize::BinaryDataReader data{
+    binary_data, static_cast<size_t>(size), true, std::endian::little};
   callSearchAndReplace(data);
   return 0;
 }
@@ -87,7 +77,7 @@ extern "C" int LLVMFuzzerTestOneInput(const unsigned char* binary_data, unsigned
  * @param argv Argument vector.
  * @return int Exit code (0 on success, 1 on failure).
  */
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {  // NOLINT(misc-use-internal-linkage,modernize-avoid-c-arrays)
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) Thats how its done unfortunately
               << " <file_path>\n";
@@ -102,7 +92,7 @@ int main(int argc, char* argv[]) {
               << " [for " << file_path << "]\n";
     return 1;
   }
-  util::BinaryDataInterpreter data(file_path);
+  serialize::BinaryDataReader data(file_path, std::endian::little);
   if (!data.isReady()) {
     std::cerr << "Failed to read file: " << file_path << "\n";
     return 1;

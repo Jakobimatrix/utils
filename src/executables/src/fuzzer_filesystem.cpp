@@ -6,15 +6,17 @@
  * @version 1.0
  **/
 
+// NOLINTBEGIN (misc-include-cleaner) // depends on the cmake configuration
 #include <utils/filesystem/filesystem.hpp>
-#include <utils/data/BinaryDataInterpreter.hpp>
+#include <utils/data/BinaryDataReader.hpp>
 
+#include <bit>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <system_error>
-
+// NOLINTEND (misc-include-cleane
 
 
 namespace {
@@ -25,22 +27,17 @@ namespace {
  * @param data Pointer to data begin.
  * @param size Size of the Data.
  */
-inline void callFilesystemFunctions(util::BinaryDataInterpreter& data) noexcept {
+inline void callFilesystemFunctions(serialize::BinaryDataReader& data) noexcept {
   try {
     std::string string_data;
     std::wstring wide_string_data;
 
-    if (!data.readNext(&string_data, data.size())) {
+    if (!data.readNext(&string_data)) {
       std::cerr << "Failed to read binary to string.\n";
       return;
     }
 
-    size_t wstring_size = data.size() % 2 == 0 ? data.size() : data.size() - 1;
-    if (data.size() == 0) {
-      wstring_size = 0;
-    }
-
-    if (!data.readNext(&wide_string_data, wstring_size)) {
+    if (!data.readNext(&wide_string_data)) {
       std::cerr << "Failed to read binary to wstring.\n";
       return;
     }
@@ -97,7 +94,7 @@ int main(int argc, char* argv[]) {
               << " [for " << file_path << "]\n";
     return 1;
   }
-  util::BinaryDataInterpreter data(file_path);
+  serialize::BinaryDataReader data(file_path, std::endian::little);
   if (!data.isReady()) {
     std::cerr << "Failed to read file: " << file_path << "\n";
     return 1;

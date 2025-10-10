@@ -18,6 +18,7 @@
 #include <string_view>
 #include <limits>
 #include <cstdint>
+#include <utility>
 
 namespace util {
 
@@ -75,17 +76,19 @@ constexpr uint32_t UTF8_THREE_BYTE_MAX = 0xFFFF;
  * @param out   Output parameter; appended with the decoded wide string on success.
  * @return True on success.
  */
-constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NOLINT (readability-function-cognitive-complexity)
+constexpr bool utf8ToWstring(std::string_view input, std::wstring* out)  // NOLINT (readability-function-cognitive-complexity)
   noexcept {
-  // Do not mutate the provided output on failure. Decode into a local buffer
-  // and assign only on full success (tests expect this behaviour).
+
+  if (!out) {
+    return false;
+  }
   std::wstring temp_out;
   constexpr bool is_wchar_16 =
     (std::numeric_limits<wchar_t>::max() == utf::UTF8_THREE_BYTE_MAX);
 
   const size_t input_size = input.size();
 
-  auto decode_leading_byte = [](uint8_t first, uint32_t& codePoint, size_t& len)  // NOLINT (bugprone-easily-swappable-parameters)
+  auto decodeLeadingByte = [](uint8_t first, uint32_t& codePoint, size_t& len)  // NOLINT (bugprone-easily-swappable-parameters)
     constexpr noexcept {
       if (first <= utf::UTF8_ONE_BYTE_MAX) {
         codePoint = first;
@@ -110,12 +113,12 @@ constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NO
       return false;
     };
 
-  auto append_cont_bytes =
-    [](std::string_view input, size_t start, size_t len, uint32_t& codePoint)  // NOLINT (bugprone-easily-swappable-parameters)
+  auto appendContBytes =
+    [](std::string_view str, size_t start, size_t len, uint32_t& codePoint)  // NOLINT (bugprone-easily-swappable-parameters)
     constexpr noexcept {
       for (size_t j = 1; j < len; ++j) {
         const uint8_t uchar =
-          static_cast<uint8_t>(static_cast<unsigned char>(input[start + j]));
+          static_cast<uint8_t>(static_cast<unsigned char>(str[start + j]));  // NOLINT (useless-cast)
         if ((uchar & utf::UTF8_TWO_BYTE_PREFIX) != utf::UTF8_CONT_PREFIX) {
           return false;
         }
@@ -124,13 +127,13 @@ constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NO
       return true;
     };
 
-  auto is_overlong = [](uint32_t codePoint, size_t len) constexpr noexcept {
+  auto isOverlong = [](uint32_t codePoint, size_t len) constexpr noexcept {
     return (len == 2 && codePoint < utf::UTF8_MIN_2BYTE) ||
            (len == 3 && codePoint < utf::UTF8_MIN_3BYTE) ||
            (len == 4 && codePoint < utf::UTF8_MIN_4BYTE);
   };
 
-  auto is_surrogate = [](uint32_t codePoint) constexpr noexcept {
+  auto isSurrogate = [](uint32_t codePoint) constexpr noexcept {
     return codePoint >= utf::UTF16_HIGH_SURROGATE_MIN && codePoint <= utf::UTF16_LOW_SURROGATE_MAX;
   };
 
@@ -140,16 +143,16 @@ constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NO
     uint32_t codePoint = 0;
     size_t len         = 0;
 
-    if (!decode_leading_byte(first, codePoint, len)) {
+    if (!decodeLeadingByte(first, codePoint, len)) {
       return false;
     }
     if (i + len > input_size) {
       return false;
     }
-    if (!append_cont_bytes(input, i, len, codePoint)) {
+    if (!appendContBytes(input, i, len, codePoint)) {
       return false;
     }
-    if (is_overlong(codePoint, len) || is_surrogate(codePoint) ||
+    if (isOverlong(codePoint, len) || isSurrogate(codePoint) ||
         codePoint > utf::UNICODE_MAX_CODEPOINT) {
       return false;
     }
@@ -173,7 +176,7 @@ constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NO
   }
 
   // Success: commit the decoded data to the caller-provided output.
-  out = std::move(temp_out);
+  *out = std::move(temp_out);
   return true;
 }
 
@@ -184,15 +187,18 @@ constexpr bool utf8_to_wstring(std::string_view input, std::wstring& out)  // NO
  * @param out  Output parameter; appended with UTF-8 bytes on success.
  * @return True on success.
  */
-constexpr bool wstring_to_utf8(std::wstring_view wstr, std::string& out) noexcept {
-  // Use a local buffer to avoid partially-written output on failure.
+constexpr bool wstringToUtf8(std::wstring_view wstr, std::string* out)  // NOLINT (readability-function-cognitive-complexity)
+  noexcept {
+  if (!out) {
+    return false;
+  }
   std::string temp_out;
   constexpr bool is_wchar_16 =
     (std::numeric_limits<wchar_t>::max() == utf::UTF8_THREE_BYTE_MAX);
 
   const size_t input_size = wstr.size();
 
-  auto push_utf8_bytes = [](std::string& outStr, uint32_t codePoint) constexpr noexcept {
+  auto pushUtf8Bytes = [](std::string& outStr, uint32_t codePoint) constexpr noexcept {
     if (codePoint <= utf::UTF8_ONE_BYTE_MAX) {
       outStr.push_back(static_cast<char>(codePoint));
     } else if (codePoint <= utf::UTF8_TWO_BYTE_MAX) {
@@ -252,11 +258,11 @@ constexpr bool wstring_to_utf8(std::wstring_view wstr, std::string& out) noexcep
       }
     }
 
-    push_utf8_bytes(temp_out, codePoint);
+    pushUtf8Bytes(temp_out, codePoint);
     ++i;
   }
 
-  out = std::move(temp_out);
+  *out = std::move(temp_out);
   return true;
 }
 

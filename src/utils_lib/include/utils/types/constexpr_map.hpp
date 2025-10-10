@@ -19,7 +19,7 @@ namespace util {
 
 template <typename Key, typename Value, std::size_t Size>
 struct Map {
-  std::array<std::pair<Key, Value>, Size> data;
+  std::array<std::pair<Key, Value>, Size> data;  // NOLINT (misc-non-privat-member-variables-in-class) This is supposed to be constexpr anyways
 
   [[nodiscard]] constexpr Value at(const Key& key) const {
     const auto itr = std::find_if(begin(data), end(data), [&key](const auto& value) {

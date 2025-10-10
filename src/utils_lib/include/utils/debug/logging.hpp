@@ -16,12 +16,13 @@
 #include <string>
 #include <sstream>
 #include <format>
+#include <utility>
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
 
-namespace log {
+namespace dbg {
 
 struct SourceLocation {
   const char* file;
@@ -34,7 +35,7 @@ inline std::string to_string(const SourceLocation& loc) {
          "() Line: " + std::to_string(loc.line);
 }
 
-}  // namespace log
+}  // namespace dbg
 
 #if defined(__clang__) || defined(__GNUC__)
 #define CURRENT_FUNC __PRETTY_FUNCTION__
@@ -45,7 +46,7 @@ inline std::string to_string(const SourceLocation& loc) {
 #endif
 
 #define CURRENT_SOURCE_LOCATION \
-  ::log::SourceLocation { __FILE__, CURRENT_FUNC, __LINE__ }
+  ::dbg::SourceLocation { __FILE__, CURRENT_FUNC, __LINE__ }
 
 namespace console {
 
@@ -233,7 +234,7 @@ struct PrettyConsole {
 
 }  // namespace console
 
-namespace log {
+namespace dbg {
 
 // Base log function
 inline void log_message(const char* level, const SourceLocation& loc, const std::string& msg) {
@@ -295,7 +296,7 @@ inline void assert_that(const SourceLocation& loc, bool expr, const std::string&
         .c_str(),
       loc,
       msg);
-    std::cerr << std::endl;
+    std::cerr << '\n';
     assert(expr && "Debug assert failed. See error message above!");
   }
 }
@@ -307,4 +308,4 @@ inline void assertf(const SourceLocation& loc, bool expr, std::string_view fmt, 
   }
 }
 
-}  // namespace log
+}  // namespace dbg

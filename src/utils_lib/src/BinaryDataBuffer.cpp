@@ -6,36 +6,40 @@
  * @date 03.10.2025
  */
 
+#include <bit>
+#include <cstdint>
+#include <utility>
+#include <cstddef>
 #include <utils/data/BinaryDataBuffer.hpp>
-#include <utils/debug/logging.hpp>
+#include <vector>
 
 namespace serialize {
 
 BinaryDataBuffer::BinaryDataBuffer(std::endian endian) noexcept
-    : endian(endian) {}
+    : m_endian(endian) {}
 
 BinaryDataBuffer::BinaryDataBuffer(std::vector<uint8_t>&& buf, std::endian endian) noexcept
-    : endian(endian),
+    : m_endian(endian),
       ready(true),
-      buffer(std::move(buf)) {}
+      m_buffer(std::move(buf)) {}
 
 std::vector<uint8_t>&& BinaryDataBuffer::releaseBuffer() noexcept {
-  cursor = 0;
-  ready  = false;
-  return std::move(buffer);
+  m_cursor = 0;
+  ready    = false;
+  return std::move(m_buffer);
 }
 
-void BinaryDataBuffer::setCursorToEnd() noexcept { cursor = buffer.size(); }
+void BinaryDataBuffer::setCursorToEnd() noexcept { m_cursor = m_buffer.size(); }
 
-void BinaryDataBuffer::setCursorToStart() noexcept { cursor = 0; }
+void BinaryDataBuffer::setCursorToStart() noexcept { m_cursor = 0; }
 
-size_t BinaryDataBuffer::size() const noexcept { return buffer.size(); }
+size_t BinaryDataBuffer::size() const noexcept { return m_buffer.size(); }
 
 bool BinaryDataBuffer::setCursor(size_t newCursor) noexcept {
-  if (newCursor > buffer.size()) {
+  if (newCursor > m_buffer.size()) {
     return false;
   }
-  cursor = newCursor;
+  m_cursor = newCursor;
   return true;
 }
 
