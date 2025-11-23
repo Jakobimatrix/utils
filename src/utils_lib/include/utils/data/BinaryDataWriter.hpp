@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <algorithm>
+#include <bitset>
 #include <new>
 #include <cstdint>
 #include <cstring>
@@ -112,6 +113,24 @@ class BinaryDataWriter : public BinaryDataBuffer {
   }
 
   /**
+   * @brief Writes a std::tuple<Ts...> by writing each element in order.
+   * @tparam Ts Types of tuple elements.
+   * @param value The tuple to write
+   * @return true if successful, false if would exceed maxExpectedSize
+   */
+  template <typename... Ts>
+  bool writeNext(const std::tuple<Ts...>& value) noexcept {
+    return writeTupleImpl(value, std::index_sequence_for<Ts...>{});
+  }
+
+ private:
+  template <typename Tuple, std::size_t... Is>
+  bool writeTupleImpl(const Tuple& tup, std::index_sequence<Is...>) noexcept {
+    return (... && writeNext(std::get<Is>(tup)));
+  }
+
+ public:
+  /**
    * @brief Writes a std::bitset<N> as the smallest fixed integer that fits (up to 64 bits).
    * @tparam N number of bits (must be <= 64)
    */
@@ -165,6 +184,8 @@ class BinaryDataWriter : public BinaryDataBuffer {
     }
     return std::visit([this](const auto& v) { return this->writeNext(v); }, value);
   }
+
+
 
   /**
    * @brief Writes a pair of values
@@ -246,6 +267,8 @@ class BinaryDataWriter : public BinaryDataBuffer {
     }
     return true;
   }
+
+
 
   /**
    * @brief Writes a set of values
@@ -341,6 +364,27 @@ class BinaryDataWriter : public BinaryDataBuffer {
     return true;
   }
 
+  /**
+   * @brief Writes a std::array<T, N> by writing each element in order.
+   * @tparam T Type of elements in the array
+   * @tparam N Number of elements in the array
+   * @param value Pointer to the array to write
+   * @return true if successful, false if would exceed maxExpectedSize
+   */
+  template <typename T, std::size_t N>
+  bool writeNext(const std::array<T, N>& value) noexcept {
+    const size_t estimated_size = estimateContainerSize(value);
+    if (!resizeIfNeeded(estimated_size)) {
+      return false;
+    }
+    for (std::size_t i = 0; i < N; ++i) {
+      if (!writeNext(value[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 
   /**
    * @brief Writes info about std::size_t always into a 64 bit type.
@@ -372,9 +416,11 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool writeNext(T value) {
-    using UnsignedT = std::make_unsigned_t<T>;
+
     using IntType =
-      std::conditional_t<std::is_floating_point_v<T>, std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>, UnsignedT>;
+      std::conditional_t<std::is_floating_point_v<T>,
+                         std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
+                         typename detail::MakeUnsignedIfIntegral<T>::type>;
 
     if (!resizeIfNeeded(sizeof(T))) {
       return false;

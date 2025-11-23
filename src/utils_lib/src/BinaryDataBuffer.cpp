@@ -19,9 +19,9 @@ BinaryDataBuffer::BinaryDataBuffer(std::endian endian) noexcept
     : m_endian(endian) {}
 
 BinaryDataBuffer::BinaryDataBuffer(std::vector<uint8_t>&& buf, std::endian endian) noexcept
-    : m_endian(endian),
-      ready(true),
-      m_buffer(std::move(buf)) {}
+    : ready(true),
+      m_buffer(std::move(buf)),
+      m_endian(endian) {}
 
 std::vector<uint8_t>&& BinaryDataBuffer::releaseBuffer() noexcept {
   m_cursor = 0;

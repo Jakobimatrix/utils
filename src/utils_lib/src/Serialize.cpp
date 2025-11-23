@@ -19,6 +19,13 @@
 
 namespace serialize {
 
+bool Flags::serialize(BinaryDataWriter& writer) const {
+  return writer.writeNext(m_flags);
+}
+
+bool Flags::deserialize(const BinaryDataReader& reader) {
+  return reader.readNext(&m_flags);
+}
 
 
 Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t checksum, int64_t timestamp)
@@ -102,14 +109,26 @@ bool Serializable::deserialize(const BinaryDataReader& reader) {
   return deserialize(reader, header);
 }
 
+std::optional<Header> Serializable::deserializeHeader(const BinaryDataReader& reader) {
+  Header header;
+  if (!reader.readNext(&header)) {
+    return {};
+  }
+  return header;
+}
+
 bool Serializable::deserialize(const BinaryDataReader& reader, const Header& header_deseriaized) {
 
   if (header_deseriaized.getId() != m_id) {
     return false;
   }
 
-
-  if (reader.getEndian() != header_deseriaized.getEndian()) {
+  if (header_deseriaized.getEndian() != reader.getEndian()) {
+    dbg::errorf(
+      CURRENT_SOURCE_LOCATION,
+      "The endian set in the header is not the endian set in the reader.",
+      header_deseriaized.getSize(),
+      reader.getNumUnreadBytes());
     return false;
   }
 

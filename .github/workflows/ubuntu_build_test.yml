@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: ubuntu C/C++ CI
 
 permissions:
   contents: read
@@ -100,6 +100,7 @@ jobs:
           tar -xzf workspace.tar.gz -C .
           source initRepo/.environment
           if [ -f .environment ]; then source .environment; fi
+          sudo apt-get update
           sudo apt-get install -y clang-format-${CLANG_FORMAT_VERSION}
           source initRepo/scripts/ensureToolVersion.sh
           ensure_tool_versioned clang-format "${CLANG_FORMAT_VERSION}"
@@ -118,6 +119,7 @@ jobs:
           set -e
           tar -xzf workspace.tar.gz -C .
           sudo apt-get update
+          sudo apt-get install -y cmake make
           sudo apt-get install -y doxygen graphviz
           sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended
 
@@ -147,6 +149,7 @@ jobs:
       matrix:
         compiler: [gcc, clang]
         build_type: [debug, release]
+        arch: [x86, x64]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -158,6 +161,14 @@ jobs:
           tar -xzf workspace.tar.gz -C .
           source initRepo/.environment
           if [ -f .environment ]; then source .environment; fi
+   
+          if [ "${{ matrix.arch }}" = "x86" ]; then
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
+            sudo apt-get install -y libc6:i386 libstdc++6:i386 libc6-dev:i386
+            sudo apt-get install -y libstdc++-${GCC_VERSION}-dev:i386 g++-${GCC_VERSION}-multilib gcc-${GCC_VERSION}-multilib
+          fi
+   
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             sudo apt-get update
             sudo apt-get install -y gcc-${GCC_VERSION} g++-${GCC_VERSION}
@@ -177,25 +188,25 @@ jobs:
             ensure_tool_versioned clang++ "${CLANG_VERSION}"
             ensure_tool_versioned clang "${CLANG_VERSION}"
           fi
+          sudo apt-get install -y cmake make
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             if [ "${{ matrix.build_type }}" = "debug" ]; then
-                ./initRepo/scripts/build.sh -d -t -g --compiler gcc
+                ./initRepo/scripts/build.sh -d -t -g --compiler gcc --arch ${{ matrix.arch }}
             else
-                ./initRepo/scripts/build.sh -r -t --compiler gcc
+                ./initRepo/scripts/build.sh -r -t --compiler gcc --arch ${{ matrix.arch }}
             fi
-            tar -czf gcc_${{ matrix.build_type }}_build.tar.gz build-gcc-${GCC_VERSION}-${{ matrix.build_type }}
+            tar -czf gcc_${{ matrix.arch }}_${{ matrix.build_type }}_build.tar.gz build-gcc-${GCC_VERSION}-${{ matrix.build_type }}-${ARCH}-${{ matrix.arch }}
           else [ "${{ matrix.compiler }}" = "clang" ]
-            ./initRepo/scripts/build.sh --${{ matrix.build_type }} -f --compiler clang 
-            ./initRepo/scripts/build.sh --${{ matrix.build_type }} -t --compiler clang
-            tar -czf clang_${{ matrix.build_type }}_build.tar.gz build-clang-${CLANG_VERSION}-${{ matrix.build_type }}
+            ./initRepo/scripts/build.sh --${{ matrix.build_type }} -f --compiler clang --arch ${{ matrix.arch }}
+            ./initRepo/scripts/build.sh --${{ matrix.build_type }} -t --compiler clang --arch ${{ matrix.arch }}
+            tar -czf clang_${{ matrix.arch }}_${{ matrix.build_type }}_build.tar.gz build-clang-${CLANG_VERSION}-${{ matrix.build_type }}-${ARCH}-${{ matrix.arch }}
           fi
 
       - name: Upload build artifact
-        if: matrix.compiler != 'clang-fuzzer'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.compiler }}-${{ matrix.build_type }}-build
-          path: ${{ matrix.compiler }}_${{ matrix.build_type }}_build.tar.gz
+          name: ${{ matrix.compiler }}-${{ matrix.arch }}-${{ matrix.build_type }}-build
+          path: ${{ matrix.compiler }}_${{ matrix.arch }}_${{ matrix.build_type }}_build.tar.gz
           retention-days: 1
 
 
@@ -206,6 +217,7 @@ jobs:
     strategy:
       matrix:
         build_type: [debug, release]
+        arch: [x86, x64]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -214,39 +226,47 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: gcc-${{ matrix.build_type }}-build
+          name: gcc-${{ matrix.arch }}-${{ matrix.build_type }}-build
           path: .
 
       - run: |
           set -e
           tar -xzf workspace.tar.gz -C .
-          tar -xzf gcc_${{ matrix.build_type }}_build.tar.gz -C .
+          tar -xzf gcc_${{ matrix.arch }}_${{ matrix.build_type }}_build.tar.gz -C .
           source initRepo/.environment
           if [ -f .environment ]; then source .environment; fi
           echo "GCC_VERSION=$GCC_VERSION" >> $GITHUB_ENV
-          if [ "${{ matrix.build_type }}" = "debug" ]; then
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+          if [ "${{ matrix.arch }}" = "x86" ]; then
+            sudo dpkg --add-architecture i386
             sudo apt-get update
+            sudo apt-get install -y libc6:i386 libstdc++6:i386 libc6-dev:i386
+            sudo apt-get install -y libstdc++-${GCC_VERSION}-dev:i386 g++-${GCC_VERSION}-multilib gcc-${GCC_VERSION}-multilib 
+          fi
+          sudo apt-get update
+          if [ "${{ matrix.build_type }}" = "debug" ] && [ "${{ matrix.arch }}" = "x64" ]; then
             sudo apt-get install -y gcovr lcov
           fi
-          ./initRepo/scripts/build.sh -s -T --${{ matrix.build_type }} -J --compiler gcc  # skip cmake and build + run Tests in Junit format output
+          sudo apt-get install -y cmake make
+          ./initRepo/scripts/build.sh -s -T --${{ matrix.build_type }} -J --compiler gcc --arch ${{ matrix.arch }}  # skip cmake and build + run Tests in Junit format output
 
       - name: Publish GCC test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: |
-            build-gcc-${{ env.GCC_VERSION }}-${{ matrix.build_type }}/test_results.xml
+            build-gcc-${{ env.GCC_VERSION }}-${{ matrix.build_type }}-${{ env.ARCH }}-${{ matrix.arch }}/test_results.xml
             
       - name: Generate coverage report
-        if: matrix.build_type == 'debug'
+        if: matrix.build_type == 'debug' && matrix.arch == 'x64'
         run: |
           gcovr --gcov-executable gcov-${{ env.GCC_VERSION }} \
-              -r . build-gcc-${{ env.GCC_VERSION }}-debug/src \
+              -r . build-gcc-${{ env.GCC_VERSION }}-debug-${{ env.ARCH }}-x64/src \
               --exclude '.*_deps/.*' --gcov-ignore-parse-errors \
               --xml-pretty -o coverage.xml
 
       - name: Publish coverage summary
-        if: matrix.build_type == 'debug'
+        if: matrix.build_type == 'debug' && matrix.arch == 'x64'
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
           filename: coverage.xml
@@ -255,7 +275,7 @@ jobs:
           output: file
           
       - name: Append coverage to summary # workaround: publish-unit-test-result-action overwrites the summary
-        if: matrix.build_type == 'debug'
+        if: matrix.build_type == 'debug' && matrix.arch == 'x64'
         run: |
           echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
           cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
@@ -267,6 +287,7 @@ jobs:
     strategy:
       matrix:
         build_type: [debug, release]
+        arch: [x86, x64]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -275,24 +296,32 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: clang-${{ matrix.build_type }}-build
+          name: clang-${{ matrix.arch }}-${{ matrix.build_type }}-build
           path: .
 
       - run: |
           set -e
           tar -xzf workspace.tar.gz -C .
-          tar -xzf clang_${{ matrix.build_type }}_build.tar.gz -C .
+          tar -xzf clang_${{ matrix.arch }}_${{ matrix.build_type }}_build.tar.gz -C .
           source initRepo/.environment
           if [ -f .environment ]; then source .environment; fi
           echo "CLANG_VERSION=$CLANG_VERSION" >> $GITHUB_ENV
-          ./initRepo/scripts/build.sh -s -T --${{ matrix.build_type }} -J --compiler clang
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+          if [ "${{ matrix.arch }}" = "x86" ]; then
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
+            sudo apt-get install -y libc6:i386 libstdc++6:i386 libc6-dev:i386
+          fi
+          sudo apt-get update
+          sudo apt-get install -y cmake make
+          ./initRepo/scripts/build.sh -s -T --${{ matrix.build_type }} -J --compiler clang --arch ${{ matrix.arch }}
 
       - name: Publish Clang test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: |
-            build-clang-${{ env.CLANG_VERSION }}-${{ matrix.build_type }}/test_results.xml
+            build-clang-${{ env.CLANG_VERSION }}-${{ matrix.build_type }}-${{ env.ARCH }}-${{ matrix.arch }}/test_results.xml
 
 
   clang_tidy:
@@ -307,17 +336,18 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: clang-debug-build
-          path: .
-          
+          name: clang-x64-debug-build
+          path: .  
           
       - run: |
           set -e
           tar -xzf workspace.tar.gz -C .
-          tar -xzf clang_debug_build.tar.gz -C .
+          tar -xzf clang_x64_debug_build.tar.gz -C .
           source initRepo/.environment
           if [ -f .environment ]; then source .environment; fi
+          sudo apt-get update
           sudo apt-get install -y clang-tidy-${CLANG_TIDY_VERSION}
+          sudo apt-get install -y cmake make
           source initRepo/scripts/ensureToolVersion.sh
           ensure_tool_versioned clang-tidy "${CLANG_TIDY_VERSION}"
 

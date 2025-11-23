@@ -24,6 +24,7 @@ class BinaryDataBuffer {
   bool ready{false};
   std::vector<uint8_t> m_buffer;
   std::endian m_endian;
+  bool m_enable_crossplatform_checks{true};
   // NOLINTEND (misc-non-private-member-variables-in-classes)
 
   explicit BinaryDataBuffer(std::endian endian) noexcept;
@@ -31,6 +32,39 @@ class BinaryDataBuffer {
 
  public:
   using SizeType = uint64_t;
+
+  // Fixed-width / platform-independent aliases
+  // The purpose of these aliases is to provide canonical types that are
+  // identical across compilers and platforms and are large enough to hold
+  // the corresponding native type's information on any supported platform.
+  // Use these when serializing/deserializing to ensure consistent on-disk
+  // format regardless of target architecture or ABI.
+
+  // A signed counterpart that can hold any value of ptrdiff_t / signed sizes
+  // on common platforms (LP64, LLP64, ILP32). 64 bits is chosen to be safe.
+  using SignedSizeType = int64_t;
+
+  // Fixed storage for character data when raw bytes are intended. Use this
+  // alias for serializing `char` / `signed char` / `unsigned char` values.
+  using ByteType       = uint8_t;
+  using SignedByteType = int8_t;
+
+  // wchar_t differs between platforms: 16 bits on Windows, 32 bits on many
+  // Unix systems. Use a 32-bit unsigned type to be able to hold any wchar_t
+  // value and to carry Unicode code points when converting to/from UTF-8.
+  using WideCharStorageType = uint32_t;
+
+  // Native pointer-sized unsigned and signed integer types. These aliases
+  // describe values that represent pointer-sized integers but promote them
+  // to 64-bit to be portable across 32/64-bit platforms when serialized.
+  using PointerUnsignedType = uint64_t;
+  using PointerSignedType   = int64_t;
+
+  // Canonical integer types to represent platform 'long' and related types
+  // in a fixed-width way when serializing. Using 64-bit signed/unsigned
+  // types ensures we can represent 'long' (32 or 64 bit) from any ABI.
+  using CanonicalLong         = int64_t;
+  using CanonicalUnsignedLong = uint64_t;
 
   [[nodiscard]] const std::vector<uint8_t>& getBuffer() const {
     return m_buffer;
@@ -78,5 +112,19 @@ class BinaryDataBuffer {
    */
   [[nodiscard]] bool setCursor(size_t newCursor) noexcept;
 };
+
+namespace detail {
+// Helper trait to avoid instantiating std::make_unsigned_t for non-integral types
+template <typename U, bool = std::is_integral_v<U>>
+struct MakeUnsignedIfIntegral;
+template <typename U>
+struct MakeUnsignedIfIntegral<U, true> {
+  using type = std::make_unsigned_t<U>;
+};
+template <typename U>
+struct MakeUnsignedIfIntegral<U, false> {
+  using type = U;
+};
+}  // namespace detail
 
 }  // namespace serialize

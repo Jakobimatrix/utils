@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <bitset>
 #include <iterator>
 #include <cstddef>
 #include <limits>
@@ -629,6 +630,46 @@ class BinaryDataReader : public BinaryDataBuffer {
   }
 
   /**
+   * @brief Read a std::bitset<N> stored as the smallest integer that fits (up to 64 bits).
+   * @tparam N number of bits (must be <= 64)
+   */
+  template <std::size_t N>
+    requires(N > 0 && N <= 64)
+  bool readNext(std::bitset<N>* value) const noexcept {
+    // TODO optimize: use M times uint8_t instead of hardcoded if else
+    // M is ceil(N/8)
+    if constexpr (N <= 8) {
+      uint8_t tmp{};
+      if (!readNext(&tmp)) {
+        return false;
+      }
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else if constexpr (N <= 16) {
+      uint16_t tmp{};
+      if (!readNext(&tmp)) {
+        return false;
+      }
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else if constexpr (N <= 32) {
+      uint32_t tmp{};
+      if (!readNext(&tmp)) {
+        return false;
+      }
+      *value = std::bitset<N>(tmp);
+      return true;
+    } else {
+      uint64_t tmp{};
+      if (!readNext(&tmp)) {
+        return false;
+      }
+      *value = std::bitset<N>(tmp);
+      return true;
+    }
+  }
+
+  /**
    * @brief Returns an constant iterator to the curent m_cursor position of the data vector.
    * @return constant iterator to the data vector advanced to the current m_cursor position.
    */
@@ -646,38 +687,6 @@ class BinaryDataReader : public BinaryDataBuffer {
     const auto readBegin = getReadBegin();
     const auto readEnd = std::next(readBegin, static_cast<std::ptrdiff_t>(length));
     return {readBegin, readEnd};
-  }
-
-  /**
-   * @brief Returns a constant reference to the binaries.
-   * @return The binaries.
-   */
-  [[nodiscard]] const std::vector<uint8_t>& getData() const noexcept {
-    return m_buffer;
-  }
-
-  /**
-   * @brief Reads info about std::size_t always from a 64 bit type.
-   * @return true if the size could be read and did not overflow.
-   */
-  template <typename T>
-  bool readNext(T* size) noexcept
-    requires(std::is_same_v<T, std::size_t> && sizeof(std::size_t) != sizeof(SizeType))
-  {
-    SizeType temp{};
-    if (!readNext(&temp)) {
-      return false;
-    }
-    if (temp > static_cast<SizeType>(std::numeric_limits<T>::max())) {
-      dbg::errorf(CURRENT_SOURCE_LOCATION,
-                  "Your data origenates from a 64 bit system! You tried to "
-                  "read a size (64 bit) with value {} but your size type in "
-                  "only 32 bit and overflows!",
-                  temp);
-      return false;
-    }
-    *size = static_cast<std::size_t>(temp);
-    return true;
   }
 
   /**
@@ -715,6 +724,30 @@ class BinaryDataReader : public BinaryDataBuffer {
   }
 
   /**
+   * @brief Reads info about std::size_t always from a 64 bit type.
+   * @return true if the size could be read and did not overflow.
+   */
+  template <typename T>
+  bool readNext(T* size) noexcept
+    requires(std::is_same_v<T, std::size_t> && sizeof(std::size_t) != sizeof(SizeType))
+  {
+    SizeType temp{};
+    if (!readNext(&temp)) {
+      return false;
+    }
+    if (temp > static_cast<SizeType>(std::numeric_limits<T>::max())) {
+      dbg::errorf(CURRENT_SOURCE_LOCATION,
+                  "Your data origenates from a 64 bit system! You tried to "
+                  "read a size (64 bit) with value {} but your size type in "
+                  "only 32 bit and overflows!",
+                  temp);
+      return false;
+    }
+    *size = static_cast<std::size_t>(temp);
+    return true;
+  }
+
+  /**
    * @brief Read a trivially scalar value from the buffer.
    * @tparam enum type.
    * @param value Pointer to the value to store the result.
@@ -724,40 +757,6 @@ class BinaryDataReader : public BinaryDataBuffer {
     requires(std::is_enum_v<T>)
   bool readNext(T* value) const {
     return readNext(static_cast<std::underlying_type_t<T*>>(value));
-  }
-
-  /**
-   * @brief Read a std::bitset<N> stored as the smallest integer that fits (up to 64 bits).
-   * @tparam N number of bits (must be <= 64)
-   */
-  template <std::size_t N>
-    requires(N > 0 && N <= 64)
-  bool readNext(std::bitset<N>* value) const noexcept {
-    if constexpr (N <= 8) {
-      uint8_t tmp{};
-      if (!readNext(&tmp))
-        return false;
-      *value = std::bitset<N>(tmp);
-      return true;
-    } else if constexpr (N <= 16) {
-      uint16_t tmp{};
-      if (!readNext(&tmp))
-        return false;
-      *value = std::bitset<N>(tmp);
-      return true;
-    } else if constexpr (N <= 32) {
-      uint32_t tmp{};
-      if (!readNext(&tmp))
-        return false;
-      *value = std::bitset<N>(tmp);
-      return true;
-    } else {
-      uint64_t tmp{};
-      if (!readNext(&tmp))
-        return false;
-      *value = std::bitset<N>(tmp);
-      return true;
-    }
   }
 
   /**
@@ -778,9 +777,10 @@ class BinaryDataReader : public BinaryDataBuffer {
 
     m_cursor += sizeof(T);
 
-    using UnsignedT = std::make_unsigned_t<T>;
     using IntType =
-      std::conditional_t<std::is_floating_point_v<T>, std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>, UnsignedT>;
+      std::conditional_t<std::is_floating_point_v<T>,
+                         std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
+                         typename detail::MakeUnsignedIfIntegral<T>::type>;
 
     IntType bits;
 
@@ -831,6 +831,14 @@ class BinaryDataReader : public BinaryDataBuffer {
   template <typename SerializableObject>
   bool readNext(SerializableObject* value) const noexcept {
     return value->deserialize(*this);
+  }
+
+  /**
+   * @brief Returns a constant reference to the binaries.
+   * @return The binaries.
+   */
+  [[nodiscard]] const std::vector<uint8_t>& getData() const noexcept {
+    return m_buffer;
   }
 
  private:
