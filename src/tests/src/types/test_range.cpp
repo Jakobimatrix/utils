@@ -3,7 +3,6 @@
  * @brief contains tests for the Range class
  * @date 30.08.2025
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 #include <catch2/catch_test_macros.hpp>

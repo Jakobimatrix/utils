@@ -3,7 +3,6 @@
  * @brief implementation for the memory functions.
  * @date 29.05.2025
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 #include <cstddef>

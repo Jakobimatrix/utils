@@ -3,7 +3,6 @@
  * @brief Contains a std::map like structure which can be used in a constexpr context.
  * Source: Jason Turner, C++ Weekly Ep 223 on Youtube: https://www.youtube.com/watch?v=INn3xa4pMfg&list=WL&index=8&t=0s
  *
- * @version 1.0
  * @date 2021
  */
 

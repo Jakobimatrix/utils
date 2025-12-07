@@ -17,7 +17,6 @@
  *
  * @note This implementation throws a `std::runtime_error` on unsupported platforms.
  *
- * @version 1.0
  * @date 2024-12-20
  */
 

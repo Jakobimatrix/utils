@@ -2,7 +2,6 @@
  * @file BinaryDataBuffer.cpp
  * @brief Implementation of the parent class for both reader and writer from and to binary.
  *
- * @version 1.0
  * @date 03.10.2025
  */
 

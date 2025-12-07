@@ -2,7 +2,6 @@
  * @file filesystem.hpp
  * @brief Adds some utility functions for filesystem operations.
  *
- * @version 1.0
  * @date 2023
  */
 

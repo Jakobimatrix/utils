@@ -2,7 +2,6 @@
  * @file range.hpp
  * @brief Contains a Container/class that represents a range [min, max]. It is mostly to combat clang-tidy warning bugprone-easily-swappable-parameters but it also hase some usefull functions.
  *
- * @version 1.0
  * @author Jakob Wandel
  * @date 30.08.2025
  */

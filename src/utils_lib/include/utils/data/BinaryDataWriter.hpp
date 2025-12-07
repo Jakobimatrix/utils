@@ -2,7 +2,6 @@
  * @file BinaryDataWriter.hpp
  * @brief A class to write binary data in a safe manner.
  *
- * @version 1.0
  * @date 03.10.2025
  */
 

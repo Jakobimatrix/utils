@@ -2,7 +2,6 @@
  * @file benchmark.hpp
  * @brief Defines Makros that allow benchmarking things the compiler would throw away.
  *
- * @version 1.0
  * @author Jakob Wandel
  * @date 2025.09.14
  */

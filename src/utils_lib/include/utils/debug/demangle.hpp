@@ -2,7 +2,6 @@
  * @file demangle.hpp
  * @brief For debuging template types
  *
- * @version 1.0
  * @date 2023
  */
 

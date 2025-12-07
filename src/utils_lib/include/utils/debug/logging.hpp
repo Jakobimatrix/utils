@@ -2,7 +2,6 @@
  * @file logging.hpp
  * @brief Modern C++20 logging with fmt-like syntax using std::format, console colors and styles
  *
- * @version 2.0
  * @author Jakob
  * @date 2025.10.03
  */

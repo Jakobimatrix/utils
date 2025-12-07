@@ -2,7 +2,6 @@
  * @file searchAndReplace.hpp
  * @brief Contains templates to perform search and replace action on std::string
  *
- * @version 1.0
  * @date 2023
  */
 

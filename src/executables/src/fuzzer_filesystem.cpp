@@ -3,7 +3,6 @@
  * @brief fuzzer tries to break searchAndReplace.hpp
  * @date 29.05.2025
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 // NOLINTBEGIN (misc-include-cleaner) // depends on the cmake configuration

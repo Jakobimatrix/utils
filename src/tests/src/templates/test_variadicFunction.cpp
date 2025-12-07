@@ -3,7 +3,6 @@
  * @brief contains tests for VariadicFunction class
  * @date 2025.08.24
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 

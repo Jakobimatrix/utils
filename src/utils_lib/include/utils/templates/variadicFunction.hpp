@@ -7,7 +7,6 @@
  * arguments again. It uses a tuple to store the arguments and a virtual base
  * class to enable polymorphic behavior.
  *
- * @version 2.0
  * @date 2025.08.24
  */
 

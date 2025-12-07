@@ -4,7 +4,6 @@
  *
  * @date 2025.08.24
  * @author Jakob Wandel
- * @version 1.0
  **/
 
 #include <catch2/catch_test_macros.hpp>

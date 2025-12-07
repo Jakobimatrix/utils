@@ -2,7 +2,6 @@
  * @file BinaryDataReader.hpp
  * @brief A class to interpret binary data in a save manner.Dont use this class inside a multithreaded environment! The cursor is mutable.
  *
- * @version 2.0
  * @date 03.10.2025
  */
 

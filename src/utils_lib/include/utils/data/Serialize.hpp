@@ -2,7 +2,6 @@
  * @file Serialize.hpp
  * @brief A parent class template for classes which need to be serialized/deserialized.
  *
- * @version 1.0
  * @date 01.10.2025
  */
 

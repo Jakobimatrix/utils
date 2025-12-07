@@ -28,7 +28,6 @@
  *
  * } // leave namespace of sketchy enum operations
  *
- * @version 2.0
  * @date 2025.08.24
  */
 

@@ -2,7 +2,6 @@
  * @file BinaryDataBuffer.hpp
  * @brief A parent class for both reader and writer from and to binary.
  *
- * @version 1.0
  * @date 03.10.2025
  */
 
