@@ -58,15 +58,11 @@ Serializable::Serializable(uint8_t version, uint16_t id)
 
 bool Serializable::serialize(BinaryDataWriter& writer) const {
   const size_t cursor_before_header = writer.getCursor();
-
-  Header header;
-  if (!writer.writeNext(header)) {
-    return false;
-  }
-
   const size_t cursor_after_checksum = cursor_before_header + Header::CHECKSUM_BYTES;
   const size_t cursor_after_header = cursor_before_header + Header::BYTES;
-  if (!writer.writeNext(header)) {
+
+  // we write the header after the class is beeing written, since we need to calculate the checksum.
+  if (!writer.setCursor(cursor_after_header)) {
     return false;
   }
 
@@ -74,27 +70,36 @@ bool Serializable::serialize(BinaryDataWriter& writer) const {
     return false;
   }
   const size_t cursor_after_class = writer.getCursor();
+  const size_t class_size         = cursor_after_class - cursor_after_header;
 
   if (!writer.setCursor(cursor_before_header)) {
     return false;
   }
 
-  const std::vector<uint8_t>& buffer = writer.getBuffer();
-  const std::span<const uint8_t> class_data{&buffer[cursor_after_checksum],
-                                            &buffer[cursor_after_class]};
-  const int32_t checksum = Header::calculateChecksum(class_data);
-  const size_t size      = cursor_after_class - cursor_after_header;
   serialize::Flags flags;
   // set endian flag from writer endian
   flags.setEndian(writer.getEndian());
   // enable checksum and timestamp by default
   flags.setControlHash(true);
   flags.setTime(true);
-  header = Header(
-    m_id, m_version, static_cast<uint64_t>(size), flags, checksum, Header::nowInMs());
+  const Header header{
+    m_id, m_version, static_cast<uint64_t>(class_size), flags, Header::NO_CHECKSUM, Header::nowInMs()};
 
   if (!writer.writeNext(header)) {
     return false;
+  }
+
+  if (flags.getControlHash()) {
+    const std::span<const uint8_t> class_buffer =
+      writer.getBuffer(cursor_after_checksum, class_size);
+    const int32_t checksum = Header::calculateChecksum(class_buffer);
+
+    if (!writer.setCursor(cursor_before_header)) {
+      return false;
+    }
+    if (!writer.writeNext(checksum)) {
+      return false;
+    }
   }
 
   return writer.setCursor(cursor_after_class);
@@ -119,10 +124,6 @@ std::optional<Header> Serializable::deserializeHeader(const BinaryDataReader& re
 
 bool Serializable::deserialize(const BinaryDataReader& reader, const Header& header_deseriaized) {
 
-  if (header_deseriaized.getId() != m_id) {
-    return false;
-  }
-
   if (header_deseriaized.getEndian() != reader.getEndian()) {
     dbg::errorf(
       CURRENT_SOURCE_LOCATION,
@@ -140,6 +141,15 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
                   m_version);
   }
 
+  if (header_deseriaized.getId() != m_id) {
+    dbg::errorf(CURRENT_SOURCE_LOCATION,
+                "Serializing wrong Object. Expected Object Id from header: {} "
+                "current Object id: {}",
+                header_deseriaized.getId(),
+                m_id);
+    return false;
+  }
+
   if (!reader.hasDataLeft(header_deseriaized.getSize())) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected {} byts but got only {}",
@@ -149,13 +159,20 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
   }
 
   const size_t cursor_before_class = reader.getCursor();
+
   if (!deserializeClass(reader)) {
+    dbg::errorf(
+      CURRENT_SOURCE_LOCATION, "Deserialization Error for Class with id: {}", m_id);
     return false;
   }
-  const size_t cursor_after_class = reader.getCursor();
-  const uint64_t readBytes        = cursor_after_class - cursor_before_class;
 
-  if (header_deseriaized.getSize() != static_cast<uint64_t>(readBytes)) {
+
+  const size_t cursor_after_class   = reader.getCursor();
+  const uint64_t readBytes          = cursor_after_class - cursor_before_class;
+  const size_t cursor_before_header = cursor_before_class - Header::BYTES;
+  const size_t cursor_after_checksum = cursor_before_header + Header::CHECKSUM_BYTES;
+
+  if (header_deseriaized.getSize() != readBytes) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected size {} does not match number of read bytes {}",
                 header_deseriaized.getSize(),
@@ -163,9 +180,12 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
     return false;
   }
 
-  const std::vector<uint8_t>& buffer = reader.getBuffer();
-  const std::span<const uint8_t> class_data{&buffer[cursor_before_class],
-                                            &buffer[cursor_after_class]};
+  if (!header_deseriaized.getFlags().getControlHash()) {
+    return true;
+  }
+
+  const std::span<const uint8_t> class_data =
+    reader.getBuffer(cursor_after_checksum, readBytes);
   const int32_t checksum = Header::calculateChecksum(class_data);
 
   if (header_deseriaized.getChecksum() != checksum) {

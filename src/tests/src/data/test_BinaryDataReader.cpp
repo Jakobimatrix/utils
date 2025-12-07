@@ -339,7 +339,7 @@ TEST_CASE(
   std::map<int, int> mp;
   mp.emplace(1, 10);
   REQUIRE(writer.writeNext(mp));
-  REQUIRE(writer.setWritingFinished());
+  REQUIRE(writer.setWritingFinished(true));
 
   auto buffer = std::move(writer.releaseBuffer());
   serialize::BinaryDataReader reader(std::move(buffer), std::endian::little);

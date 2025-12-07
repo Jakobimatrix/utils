@@ -6,7 +6,16 @@ Reusable C++ utility library for cross-project development.
 
  - OS: Ubuntu 24.04
  - compiler: clang 19, gcc 13
+ - 32Bit / 64Bit
  - debug + release
+ - tests
+
+[![Windows C/C++ CI](https://github.com/Jakobimatrix/utils/actions/workflows/windows_build_test.yml/badge.svg)](https://github.com/Jakobimatrix/utils/actions/workflows/windows_build_test.yml)
+
+ - OS: Windows latest
+ - compiler: clang latest, gcc latest, msvc latest
+ - debug + release
+ - 32Bit / 64Bit
  - tests
 
  ---

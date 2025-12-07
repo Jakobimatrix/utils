@@ -156,52 +156,133 @@ TEST_CASE("Test serialization deserialization") {
   testClass1.a_size      = static_cast<std::size_t>(123456);
 
   TestClass_2 testClass2(testClass1);
+  const std::vector<uint8_t> raw_data_big_endian{
+    1,   16,  23,  107, 0,   1,   1,   6,   0,   0,   0,   0,   0,   0,   1,
+    111, 0,   0,   1,   154, 250, 222, 205, 100, 89,  222, 16,  156, 0,   0,
+    1,   6,   0,   0,   0,   0,   0,   0,   1,   87,  0,   0,   1,   154, 250,
+    222, 205, 100, 1,   244, 2,   143, 255, 255, 207, 199, 0,   0,   0,   0,
+    222, 173, 190, 239, 64,  72,  245, 195, 64,  25,  30,  184, 81,  235, 133,
+    31,  0,   0,   0,   0,   0,   0,   0,   11,  104, 101, 108, 108, 111, 32,
+    119, 111, 114, 108, 100, 0,   0,   0,   0,   0,   0,   0,   16,  119, 227,
+    129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175, 1,
+    0,   0,   0,   42,  0,   0,   0,   0,   0,   0,   0,   1,   0,   0,   0,
+    0,   0,   0,   0,   14,  118, 97,  114, 105, 97,  110, 116, 45,  115, 116,
+    114, 105, 110, 103, 255, 255, 255, 249, 0,   0,   0,   77,  0,   0,   0,
+    0,   0,   0,   0,   4,   0,   0,   0,   1,   0,   0,   0,   2,   0,   0,
+    0,   3,   0,   0,   0,   4,   0,   0,   0,   0,   0,   0,   0,   2,   0,
+    0,   0,   0,   0,   0,   0,   3,   111, 110, 101, 0,   0,   0,   0,   0,
+    0,   0,   3,   116, 119, 111, 0,   0,   0,   0,   0,   0,   0,   2,   63,
+    192, 0,   0,   64,  32,  0,   0,   0,   0,   0,   10,  0,   0,   0,   20,
+    0,   0,   0,   30,  0,   0,   0,   0,   0,   0,   0,   2,   0,   0,   0,
+    0,   0,   0,   0,   2,   107, 49,  0,   0,   0,   11,  0,   0,   0,   0,
+    0,   0,   0,   2,   107, 50,  0,   0,   0,   22,  0,   0,   0,   0,   0,
+    0,   0,   2,   0,   0,   0,   2,   0,   0,   0,   0,   0,   0,   0,   3,
+    116, 119, 111, 0,   0,   0,   1,   0,   0,   0,   0,   0,   0,   0,   3,
+    111, 110, 101, 0,   0,   0,   0,   0,   0,   0,   3,   0,   0,   0,   5,
+    0,   0,   0,   6,   0,   0,   0,   7,   0,   0,   0,   0,   0,   0,   0,
+    2,   0,   0,   0,   0,   0,   0,   0,   2,   117, 50,  0,   0,   0,   0,
+    0,   0,   0,   2,   117, 49,  0,   0,   0,   99,  0,   0,   0,   0,   0,
+    0,   0,   5,   116, 117, 112, 108, 101, 0,   0,   0,   0,   0,   1,   226,
+    64};
+  const std::vector<uint8_t> raw_data_little_endian{
+    154, 194, 198, 249, 1,   0,   1,   7,   111, 1,   0,   0,   0,   0,   0,
+    0,   149, 16,  189, 250, 154, 1,   0,   0,   169, 162, 189, 197, 0,   0,
+    1,   7,   87,  1,   0,   0,   0,   0,   0,   0,   149, 16,  189, 250, 154,
+    1,   0,   0,   1,   244, 143, 2,   199, 207, 255, 255, 239, 190, 173, 222,
+    0,   0,   0,   0,   195, 245, 72,  64,  31,  133, 235, 81,  184, 30,  25,
+    64,  11,  0,   0,   0,   0,   0,   0,   0,   104, 101, 108, 108, 111, 32,
+    119, 111, 114, 108, 100, 16,  0,   0,   0,   0,   0,   0,   0,   119, 227,
+    129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175, 1,
+    42,  0,   0,   0,   1,   0,   0,   0,   0,   0,   0,   0,   14,  0,   0,
+    0,   0,   0,   0,   0,   118, 97,  114, 105, 97,  110, 116, 45,  115, 116,
+    114, 105, 110, 103, 249, 255, 255, 255, 77,  0,   0,   0,   4,   0,   0,
+    0,   0,   0,   0,   0,   1,   0,   0,   0,   2,   0,   0,   0,   3,   0,
+    0,   0,   4,   0,   0,   0,   2,   0,   0,   0,   0,   0,   0,   0,   3,
+    0,   0,   0,   0,   0,   0,   0,   111, 110, 101, 3,   0,   0,   0,   0,
+    0,   0,   0,   116, 119, 111, 2,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   192, 63,  0,   0,   32,  64,  10,  0,   0,   0,   20,  0,   0,   0,
+    30,  0,   0,   0,   2,   0,   0,   0,   0,   0,   0,   0,   2,   0,   0,
+    0,   0,   0,   0,   0,   107, 49,  11,  0,   0,   0,   2,   0,   0,   0,
+    0,   0,   0,   0,   107, 50,  22,  0,   0,   0,   2,   0,   0,   0,   0,
+    0,   0,   0,   2,   0,   0,   0,   3,   0,   0,   0,   0,   0,   0,   0,
+    116, 119, 111, 1,   0,   0,   0,   3,   0,   0,   0,   0,   0,   0,   0,
+    111, 110, 101, 3,   0,   0,   0,   0,   0,   0,   0,   5,   0,   0,   0,
+    6,   0,   0,   0,   7,   0,   0,   0,   2,   0,   0,   0,   0,   0,   0,
+    0,   2,   0,   0,   0,   0,   0,   0,   0,   117, 50,  2,   0,   0,   0,
+    0,   0,   0,   0,   117, 49,  99,  0,   0,   0,   5,   0,   0,   0,   0,
+    0,   0,   0,   116, 117, 112, 108, 101, 64,  226, 1,   0,   0,   0,   0,
+    0};
 
   // serialize
-  serialize::BinaryDataWriter writer(1024, 1024 * 1024, std::endian::native);
-  REQUIRE(writer.writeNext(testClass2));
-  REQUIRE(writer.setWritingFinished());
+  serialize::BinaryDataWriter writer_native(367, 1024, std::endian::native);
+  REQUIRE(writer_native.writeNext(testClass2));
+  REQUIRE(writer_native.setWritingFinished(true));
 
-  std::cerr << "\n size after write: " << writer.size() << "\n" << std::flush;
+  const std::vector<uint8_t> data_native = std::move(writer_native.releaseBuffer());
 
-  const std::vector<uint8_t> data = std::move(writer.releaseBuffer());
-
-  std::cerr << "\n again: " << data.size() << "\n" << std::flush;
-
-  // extract class payload from original buffer
-  serialize::BinaryDataReader rdr_for_payload(data, std::endian::native);
-  const auto header_orig  = serialize::Header::getHeader(rdr_for_payload);
-  const size_t start_orig = rdr_for_payload.getCursor();
-  const size_t size_orig  = static_cast<size_t>(header_orig.getSize());
-  std::vector<uint8_t> payload_orig(
-    std::next(data.begin(), static_cast<ptrdiff_t>(start_orig)),
-    std::next(data.begin(), static_cast<ptrdiff_t>(start_orig + size_orig)));
-
-  std::cerr << "\n header: " << header_orig << "\n" << std::flush;
+  /*
+  for(uint8_t dieda : data_native){
+    std::cerr << static_cast<short>(dieda) << ", ";
+  }
+  std::cerr << std::endl;
+  */
 
   // deserialize
-  serialize::BinaryDataReader rdr(data, std::endian::native);
-  TestClass_2 deserialized;
-  const bool serializedSuccess{rdr.readNext(&deserialized)};
+  serialize::BinaryDataReader rdr_native(data_native, std::endian::native);
+
+  /*
+  serialize::Header h1,h2;
+  REQUIRE(rdr_native.readNext(&h1));
+  REQUIRE(rdr_native.readNext(&h2));
+  std::cerr << h1 << std::endl;
+  std::cerr << h2 << std::endl;
+
+  REQUIRE(rdr_native.setCursorToStart)
+  */
+
+  TestClass_2 deserialized_native;
+  const bool serializedSuccess{rdr_native.readNext(&deserialized_native)};
   REQUIRE(serializedSuccess);
 
-  // re-serialize deserialized object
-  serialize::BinaryDataWriter writer2(1024, 1024 * 1024, std::endian::native);
-  REQUIRE(writer2.writeNext(deserialized));
-  REQUIRE(writer2.setWritingFinished());
-  auto data2 = writer2.releaseBuffer();
+  auto checkClassEqual = [&testClass1](const TestClass_2& testClass) {
+    REQUIRE(testClass.getClass().a_array == testClass1.a_array);
+    REQUIRE(testClass.getClass().a_bool == testClass1.a_bool);
+    REQUIRE(testClass.getClass().a_int8 == testClass1.a_int8);
+    REQUIRE(testClass.getClass().a_uint16 == testClass1.a_uint16);
+    REQUIRE(testClass.getClass().a_int32 == testClass1.a_int32);
+    REQUIRE(testClass.getClass().a_uint64 == testClass1.a_uint64);
+    REQUIRE(testClass.getClass().a_float == testClass1.a_float);
+    REQUIRE(testClass.getClass().a_double == testClass1.a_double);
+    REQUIRE(testClass.getClass().a_string == testClass1.a_string);
+    REQUIRE(testClass.getClass().a_wstring == testClass1.a_wstring);
+    REQUIRE(testClass.getClass().a_optional == testClass1.a_optional);
+    REQUIRE(testClass.getClass().a_variant == testClass1.a_variant);
+    REQUIRE(testClass.getClass().a_pair == testClass1.a_pair);
+    REQUIRE(testClass.getClass().a_vector == testClass1.a_vector);
+    REQUIRE(testClass.getClass().a_list == testClass1.a_list);
+    REQUIRE(testClass.getClass().a_deque == testClass1.a_deque);
+    REQUIRE(testClass.getClass().a_map == testClass1.a_map);
+    REQUIRE(testClass.getClass().a_umap == testClass1.a_umap);
+    REQUIRE(testClass.getClass().a_set == testClass1.a_set);
+    REQUIRE(testClass.getClass().a_uset == testClass1.a_uset);
+    REQUIRE(testClass.getClass().a_tuple == testClass1.a_tuple);
+    REQUIRE(testClass.getClass().a_size == testClass1.a_size);
+  };
 
-  // extract class payload from re-serialized buffer
-  serialize::BinaryDataReader rdr_for_payload2(data2, std::endian::native);
-  const auto header_new  = serialize::Header::getHeader(rdr_for_payload2);
-  const size_t start_new = rdr_for_payload2.getCursor();
-  const size_t size_new  = static_cast<size_t>(header_new.getSize());
-  std::vector<uint8_t> payload_new(
-    std::next(data2.begin(), static_cast<ptrdiff_t>(start_new)),
-    std::next(data2.begin(), static_cast<ptrdiff_t>(start_new + size_new)));
+  checkClassEqual(deserialized_native);
 
-  REQUIRE(size_orig == size_new);
-  REQUIRE(payload_orig == payload_new);
+  // extract class payload from raw_data_little_endian buffer
+  serialize::BinaryDataReader rdr_little(raw_data_little_endian, std::endian::little);
+  TestClass_2 deserialized_liottle;
+  REQUIRE(rdr_little.readNext(&deserialized_liottle));
+  checkClassEqual(deserialized_liottle);
+
+  // extract class payload from raw_data_big_endian buffer
+  serialize::BinaryDataReader rdr_big(raw_data_big_endian, std::endian::big);
+  TestClass_2 deserialized_big;
+  REQUIRE(rdr_big.readNext(&deserialized_big));
+
+  checkClassEqual(deserialized_big);
 }
 
 // NOLINTEND(readability-magic-numbers)

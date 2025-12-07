@@ -60,18 +60,22 @@ class BinaryDataWriter : public BinaryDataBuffer {
     auto size       = data.size();
     auto writer     = BinaryDataWriter(size, size, reader.getEndian());
     writer.m_buffer = std::move(data);
+    writer.ready    = true;
     return writer;
   }
 
   /**
    * @brief Indicates that all data has been written and shrinks m_buffer to fit
-   * @return true if successful, false if m_buffer is empty
+   * @param shring_to_cursor_position Reduces the size of the intrnal memory (vector) to the current cursor position which is the number of written bits, if not tempered with.
+   * @return true if successful, false if m_buffer is empty or this function was called already or
    */
-  bool setWritingFinished() noexcept {
-    if (m_buffer.empty()) {
+  bool setWritingFinished(bool shring_to_cursor_position) noexcept {
+    if (m_buffer.empty() || ready) {
       return false;
     }
-    m_buffer.shrink_to_fit();
+    if (shring_to_cursor_position) {
+      m_buffer.resize(m_cursor);
+    }
     ready = true;
     return true;
   }

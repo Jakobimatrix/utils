@@ -25,7 +25,7 @@ using namespace serialize;
 TEST_CASE("BinaryDataWriter: writeNext string success and failure") {
   BinaryDataWriter writer(0, 1024, std::endian::little);
   REQUIRE(writer.writeNext(std::string("hi")));
-  REQUIRE(writer.setWritingFinished());
+  REQUIRE(writer.setWritingFinished(true));
   auto buf = writer.releaseBuffer();
   // reader should decode it
   BinaryDataReader const reader(std::move(buf), std::endian::little);
@@ -40,7 +40,7 @@ TEST_CASE(
   REQUIRE_FALSE(writer.writeNext(uint32_t(0x12345678)));  // would exceed (4 bytes)
   BinaryDataWriter writer2(0, 1024, std::endian::little);
   REQUIRE(writer2.writeNext(uint32_t(0x01020304)));
-  REQUIRE(writer2.setWritingFinished());
+  REQUIRE(writer2.setWritingFinished(true));
   auto buf = writer2.releaseBuffer();
   BinaryDataReader const reader2(std::move(buf), std::endian::little);
   uint32_t decodedValue = 0;
@@ -57,7 +57,7 @@ TEST_CASE("BinaryDataWriter: container writes success and failure") {
   std::map<int, int> map;
   map.emplace(1, 10);
   REQUIRE(writer.writeNext(map));
-  REQUIRE(writer.setWritingFinished());
+  REQUIRE(writer.setWritingFinished(true));
   auto buf = writer.releaseBuffer();
   BinaryDataReader const reader(std::move(buf), std::endian::little);
   std::vector<int> readVector;

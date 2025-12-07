@@ -11,6 +11,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <vector>
 
 namespace serialize {
@@ -66,9 +67,28 @@ class BinaryDataBuffer {
   using CanonicalLong         = int64_t;
   using CanonicalUnsignedLong = uint64_t;
 
+  /**
+   * @brief Returns the rad only buffer.
+   * @return The buffer
+   */
   [[nodiscard]] const std::vector<uint8_t>& getBuffer() const {
     return m_buffer;
   }
+
+  /**
+   * @brief Returns a span of the rad only buffer.
+   * @param start The start bit.
+   * @param length The size to read.
+   * @return The buffer span. If invalid start/length given, an empty span is returned.
+   */
+  [[nodiscard]] std::span<const uint8_t> getBuffer(size_t start, size_t length) const {
+    const size_t end = start + length;
+    if (end >= m_buffer.size() || end < start) {
+      return {};
+    }
+    return {&m_buffer[start], &m_buffer[start + length]};
+  }
+
   [[nodiscard]] std::vector<uint8_t>&& releaseBuffer() noexcept;
 
   /**
