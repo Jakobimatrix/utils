@@ -79,7 +79,7 @@ constexpr uint32_t UTF8_THREE_BYTE_MAX = 0xFFFF;
 constexpr bool utf8ToWstring(std::string_view input, std::wstring* out)  // NOLINT (readability-function-cognitive-complexity)
   noexcept {
 
-  if (!out) {
+  if (out == nullptr) {
     return false;
   }
   std::wstring temp_out;
@@ -189,7 +189,7 @@ constexpr bool utf8ToWstring(std::string_view input, std::wstring* out)  // NOLI
  */
 constexpr bool wstringToUtf8(std::wstring_view wstr, std::string* out)  // NOLINT (readability-function-cognitive-complexity)
   noexcept {
-  if (!out) {
+  if (out == nullptr) {
     return false;
   }
   std::string temp_out;
@@ -230,7 +230,8 @@ constexpr bool wstringToUtf8(std::wstring_view wstr, std::string* out)  // NOLIN
   size_t i = 0;
   while (i < input_size) {
 
-    uint32_t codePoint = static_cast<uint32_t>(wstr[i]);
+    uint32_t codePoint = static_cast<uint32_t>(
+      wstr[i]);  // NOLINT (bugprone-signed-char-misuse) casting to unsigned char first would change the behaviour!
 
     if constexpr (is_wchar_16) {
       if (codePoint >= utf::UTF16_HIGH_SURROGATE_MIN && codePoint <= utf::UTF16_HIGH_SURROGATE_MAX) {

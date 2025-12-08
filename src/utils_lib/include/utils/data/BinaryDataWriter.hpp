@@ -7,10 +7,12 @@
 
 #pragma once
 
+#include <array>
 #include <bit>
 #include <algorithm>
 #include <bitset>
 #include <new>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <deque>
@@ -19,6 +21,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -54,7 +57,8 @@ class BinaryDataWriter : public BinaryDataBuffer {
    * @return A new writer containing the reader's m_buffer
    */
   template <class BinaryDataBufferChild>
-  static BinaryDataWriter fromReader(BinaryDataBufferChild&& reader) {
+  static BinaryDataWriter fromReader(BinaryDataBufferChild&& reader)  // NOLINT (cppcoreguidelines-missing-std-forward) but the data is
+  {
     auto data       = std::move(reader.releaseBuffer());
     auto size       = data.size();
     auto writer     = BinaryDataWriter(size, size, reader.getEndian());
@@ -95,7 +99,9 @@ class BinaryDataWriter : public BinaryDataBuffer {
     }
 
     if (!value.empty()) {
-      std::memcpy(m_buffer.data() + m_cursor, value.data(), value.size());
+      auto dest = m_buffer.begin() + static_cast<std::ptrdiff_t>(m_cursor);
+      std::span<uint8_t> dest_span(dest, value.size());
+      std::memcpy(dest_span.data(), value.data(), value.size());
       m_cursor += value.size();
     }
     return true;
@@ -128,7 +134,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
 
  private:
   template <typename Tuple, std::size_t... Is>
-  bool writeTupleImpl(const Tuple& tup, std::index_sequence<Is...>) noexcept {
+  bool writeTupleImpl(const Tuple& tup, std::index_sequence<Is...> /*unused*/) noexcept {
     return (... && writeNext(std::get<Is>(tup)));
   }
 
@@ -419,7 +425,6 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool writeNext(T value) {
-
     using IntType =
       std::conditional_t<std::is_floating_point_v<T>,
                          std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
@@ -437,15 +442,16 @@ class BinaryDataWriter : public BinaryDataBuffer {
       }
     }();
 
-    uint8_t* dest = m_buffer.data() + m_cursor;
+    const auto begin = m_buffer.begin() + static_cast<std::ptrdiff_t>(m_cursor);
+    const std::span<uint8_t> dest(begin, sizeof(T));
 
     constexpr size_t SIZE_BYTE{8};
     constexpr size_t BYTE_MASK{0xFF};
 
     if constexpr (sizeof(T) == 1) {
-      *dest = static_cast<uint8_t>(bits);
+      dest[0] = static_cast<uint8_t>(bits);
     } else if (getEndian() == std::endian::native) {
-      std::memcpy(dest, &bits, sizeof(T));
+      std::memcpy(dest.data(), &bits, sizeof(T));
     } else {
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {

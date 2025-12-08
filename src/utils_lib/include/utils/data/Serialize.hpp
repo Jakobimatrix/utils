@@ -10,6 +10,9 @@
 
 
 #include <concepts>
+#include <limits>
+#include <ostream>
+#include <optional>
 #include <utils/data/BinaryDataReader.hpp>
 #include <utils/data/BinaryDataWriter.hpp>
 
@@ -37,7 +40,7 @@ namespace serialize {
  */
 class SystemFingerprint {
  public:
-  static constexpr std::size_t BITS = 8u;
+  static constexpr std::size_t BITS = 8U;
   // Bit layout (index => meaning)
   // 0 : char is signed (1) or unsigned (0)
   // 1 : sizeof(size_t) >= 8
@@ -45,7 +48,7 @@ class SystemFingerprint {
   // 3 : sizeof(long) >= 8
   // 4 : long long is 64-bit
   // remaining bits reserved for future use
-  std::bitset<BITS> m_fingerprint{};
+  std::bitset<BITS> m_fingerprint;
   std::uint64_t m_size_hash{};
 
   using CanonicalSize_t = uint64_t;
@@ -135,23 +138,24 @@ class SystemFingerprint {
       static_cast<std::uint8_t>(sizeof(long double)),
       static_cast<std::uint8_t>(sizeof(std::size_t)),
       static_cast<std::uint8_t>(sizeof(std::ptrdiff_t))};
-    std::uint64_t size_hash = 14695981039346656037ull;
+    std::uint64_t size_hash = 14695981039346656037ULL;
     for (std::size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
       size_hash ^= static_cast<std::uint64_t>(sizes[i]);
-      size_hash *= 1099511628211ull;
+      size_hash *= 1099511628211ULL;
     }
     return size_hash;
   }
 
-  std::string interpret() const noexcept {
+  [[nodiscard]] std::string interpret() const noexcept {
     std::ostringstream ss;
     ss << "char is " << (m_fingerprint[0] ? "signed" : "unsigned") << "; ";
-    if (m_fingerprint[1])
+    if (m_fingerprint[1]) {
       ss << "wchar_t = 16-bit; ";
-    else if (m_fingerprint[2])
+    } else if (m_fingerprint[2]) {
       ss << "wchar_t = 32-bit; ";
-    else
+    } else {
       ss << "wchar_t = " << (sizeof(wchar_t) * 8) << "-bit; ";
+    }
     ss << "size_t = " << (m_fingerprint[3] ? ">=64-bit" : "<64-bit") << "; ";
     ss << "ptrdiff_t = " << (m_fingerprint[4] ? ">=64-bit" : "<64-bit") << "; ";
     ss << "long = " << (m_fingerprint[5] ? ">=64-bit" : "<64-bit") << "; ";
@@ -182,15 +186,15 @@ class Flags {
     m_flags[0] = (endian == std::endian::little);
   }
 
-  std::endian getEndian() const noexcept {
+  [[nodiscard]] std::endian getEndian() const noexcept {
     return m_flags[0] ? std::endian::little : std::endian::big;
   }
 
   void setControlHash(bool enabled) noexcept { m_flags[1] = enabled; }
-  bool getControlHash() const noexcept { return m_flags[1]; }
+  [[nodiscard]] bool getControlHash() const noexcept { return m_flags[1]; }
 
   void setTime(bool enabled) noexcept { m_flags[2] = enabled; }
-  bool getTime() const noexcept { return m_flags[2]; }
+  [[nodiscard]] bool getTime() const noexcept { return m_flags[2]; }
 
   enum class Compression : uint8_t {
     None  = 0,
@@ -201,37 +205,37 @@ class Flags {
   enum class Encryption : uint8_t { None = 0, Algo1 = 1, Algo2 = 2, Algo3 = 3 };
 
   void setCompression(Compression c) noexcept {
-    const uint8_t v = static_cast<uint8_t>(c) & 0x3u;
+    const uint8_t v = static_cast<uint8_t>(c) & 0x3U;
     // bits 3 (LSB) and 4 (MSB)
-    m_flags[3] = static_cast<bool>(v & 0x1u);
-    m_flags[4] = static_cast<bool>((v >> 1) & 0x1u);
+    m_flags[3] = static_cast<bool>(v & 0x1U);
+    m_flags[4] = static_cast<bool>((v >> 1) & 0x1U);
   }
 
-  Compression getCompression() const noexcept {
+  [[nodiscard]] Compression getCompression() const noexcept {
     const uint8_t v =
-      (m_flags[3] ? static_cast<uint8_t>(1u) : static_cast<uint8_t>(0u)) |
+      (m_flags[3] ? static_cast<uint8_t>(1U) : static_cast<uint8_t>(0U)) |
       static_cast<uint8_t>(
-        (m_flags[4] ? static_cast<uint8_t>(1u) : static_cast<uint8_t>(0u)) << 1);
-    return static_cast<Compression>(v & 0x3u);
+        (m_flags[4] ? static_cast<uint8_t>(1U) : static_cast<uint8_t>(0U)) << 1);
+    return static_cast<Compression>(v & 0x3U);
   }
 
   void setEncryption(Encryption e) noexcept {
-    const uint8_t v = static_cast<uint8_t>(e) & 0x3u;
+    const uint8_t v = static_cast<uint8_t>(e) & 0x3U;
     // bits 5 (LSB) and 6 (MSB)
-    m_flags[5] = static_cast<bool>(v & 0x1u);
-    m_flags[6] = static_cast<bool>((v >> 1) & 0x1u);
+    m_flags[5] = static_cast<bool>(v & 0x1U);
+    m_flags[6] = static_cast<bool>((v >> 1) & 0x1U);
   }
 
-  Encryption getEncryption() const noexcept {
+  [[nodiscard]] Encryption getEncryption() const noexcept {
     const uint8_t v =
-      (m_flags[5] ? static_cast<uint8_t>(1u) : static_cast<uint8_t>(0u)) |
+      (m_flags[5] ? static_cast<uint8_t>(1U) : static_cast<uint8_t>(0U)) |
       static_cast<uint8_t>(
-        (m_flags[6] ? static_cast<uint8_t>(1u) : static_cast<uint8_t>(0u)) << 1);
-    return static_cast<Encryption>(v & 0x3u);
+        (m_flags[6] ? static_cast<uint8_t>(1U) : static_cast<uint8_t>(0U)) << 1);
+    return static_cast<Encryption>(v & 0x3U);
   }
 
   void setStrictMode(bool enabled) noexcept { m_flags[7] = enabled; }
-  bool getStrictMode() const noexcept { return m_flags[7]; }
+  [[nodiscard]] bool getStrictMode() const noexcept { return m_flags[7]; }
 
   bool serialize(BinaryDataWriter& writer) const;
   bool deserialize(const BinaryDataReader& reader);
@@ -303,15 +307,17 @@ class Header {
     return header;
   }
 
-  std::endian getEndian() const { return m_flags.getEndian(); }
+  [[nodiscard]] std::endian getEndian() const { return m_flags.getEndian(); }
 
-  bool hasVersion() const { return m_version != NO_VERSION; }
+  [[nodiscard]] bool hasVersion() const { return m_version != NO_VERSION; }
 
-  bool hasId() const { return m_id != NO_ID; }
+  [[nodiscard]] bool hasId() const { return m_id != NO_ID; }
 
-  bool hasHash() const { return m_checksum != NO_CHECKSUM; }
+  [[nodiscard]] bool hasHash() const { return m_checksum != NO_CHECKSUM; }
 
-  bool hasTimestamp() const { return m_timestamp != NO_TIMESTAMP; }
+  [[nodiscard]] bool hasTimestamp() const {
+    return m_timestamp != NO_TIMESTAMP;
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const Header& header) {
     os << "Header {\n"
@@ -397,7 +403,7 @@ class Serializable {
   bool serialize(BinaryDataWriter& writer) const;
   bool serialize(BinaryDataWriter& writer, Flags flags) const;
   bool deserialize(const BinaryDataReader& reader);
-  std::optional<Header> deserializeHeader(const BinaryDataReader& reader);
+  static std::optional<Header> deserializeHeader(const BinaryDataReader& reader);
 };
 
 

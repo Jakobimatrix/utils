@@ -51,7 +51,8 @@ class BinaryDataReader : public BinaryDataBuffer {
    * @return A new reader containing the writers's buffer
    */
   template <class BinaryDataBufferChild>
-  static BinaryDataReader fromReader(BinaryDataBufferChild&& writer) {
+  static BinaryDataReader fromWriter(BinaryDataBufferChild&& writer)  // NOLINT (cppcoreguidelines-missing-std-forward) but the data is
+  {
     auto data = std::move(writer.releaseBuffer());
     return BinaryDataReader(std::move(data), writer.getEndian());
   }
@@ -767,12 +768,13 @@ class BinaryDataReader : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool readNext(T* value) const {
-
-    const uint8_t* src = m_buffer.data() + m_cursor;
-
     if (!hasDataLeft(sizeof(T))) {
       return false;
     }
+
+    // Use span and iterators to avoid pointer arithmetic
+    auto begin = m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor);
+    std::span<const uint8_t> src(begin, sizeof(T));
 
     m_cursor += sizeof(T);
 
@@ -781,16 +783,14 @@ class BinaryDataReader : public BinaryDataBuffer {
                          std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
                          typename detail::MakeUnsignedIfIntegral<T>::type>;
 
-    IntType bits;
-
+    IntType bits = 0;
     constexpr size_t SIZE_BYTE{8};
 
     if constexpr (sizeof(T) == 1) {
-      bits = *src;
+      bits = src[0];
     } else if (getEndian() == std::endian::native) {
-      std::memcpy(&bits, src, sizeof(T));
+      std::memcpy(&bits, src.data(), sizeof(T));
     } else {
-      bits = 0;
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {
           bits |= static_cast<IntType>(src[i]) << (i * SIZE_BYTE);
@@ -815,9 +815,10 @@ class BinaryDataReader : public BinaryDataBuffer {
     if (!hasDataLeft(1)) {
       return false;
     }
-    const uint8_t* src  = m_buffer.data() + m_cursor;
-    m_cursor           += 1;
-    *value              = (*src != 0);
+    std::span<const uint8_t> src(
+      m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor), 1);
+    m_cursor += 1;
+    *value    = (src[0] != 0);
     return true;
   }
 

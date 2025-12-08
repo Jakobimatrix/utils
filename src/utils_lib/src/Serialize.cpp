@@ -6,16 +6,15 @@
  * @m_version 1.0
  **/
 
+#include <utils/data/Serialize.hpp>
+#include <utils/debug/logging.hpp>
+#include <utils/data/BinaryDataWriter.hpp>
+#include <utils/data/BinaryDataReader.hpp>
 
 #include <cstdint>
 #include <cstddef>
 #include <span>
-#include <utils/data/Serialize.hpp>
-#include <utils/debug/logging.hpp>
-#include "utils/data/BinaryDataWriter.hpp"
-#include "utils/data/BinaryDataReader.hpp"
-#include <vector>
-
+#include <optional>
 
 namespace serialize {
 
@@ -27,7 +26,7 @@ bool Flags::deserialize(const BinaryDataReader& reader) {
   return reader.readNext(&m_flags);
 }
 
-
+// NOLINTBEGIN (bugprone-easily-swappable-parameters) and I am sorry for this
 Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t checksum, int64_t timestamp)
     : m_checksum(checksum),
       m_id(id),
@@ -35,8 +34,10 @@ Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t
       m_flags(flags),
       m_size(size),
       m_timestamp(timestamp) {}
+
 Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags)
     : Header(id, version, size, flags, NO_CHECKSUM, NO_TIMESTAMP) {}
+
 
 bool Header::serialize(BinaryDataWriter& writer) const {
   return writer.writeNext(m_checksum) && writer.writeNext(m_id) &&
@@ -50,10 +51,11 @@ bool Header::deserialize(const BinaryDataReader& reader) {
          reader.readNext(&m_size) && reader.readNext(&m_timestamp);
 }
 
-
 Serializable::Serializable(uint8_t version, uint16_t id)
     : m_id(id),
       m_version(version) {}
+
+// NOLINTEND (bugprone-easily-swappable-parameters)
 
 
 bool Serializable::serialize(BinaryDataWriter& writer) const {

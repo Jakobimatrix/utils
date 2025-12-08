@@ -71,7 +71,7 @@ class Range {
   void addDelta(const T delta) {
     if (delta < 0 && -delta > getDistance()) {
       // empty Range
-      max = getDistance() / static_cast<T>(2.) + min;
+      max = getDistance() / static_cast<T>(2) + min;
       min = max;
       return;
     }
@@ -116,7 +116,7 @@ class Range {
    * @return The center of the Range.
    */
   [[nodiscard]] constexpr T getCenter() const {
-    return (max + min) / static_cast<T>(2.);
+    return (max + min) / static_cast<T>(2);
   }
 
   /**

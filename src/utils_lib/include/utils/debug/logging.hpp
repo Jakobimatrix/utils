@@ -244,7 +244,8 @@ inline void log_message(const char* level, const SourceLocation& loc, const std:
 #include <string_view>
 template <typename... Args>
 inline void logf(const char* level, const SourceLocation& loc, std::string_view fmt, Args&&... args) {
-  log_message(level, loc, std::vformat(fmt, std::make_format_args(args...)));
+  log_message(
+    level, loc, std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...)));
 }
 
 // Debug
@@ -303,7 +304,8 @@ inline void assert_that(const SourceLocation& loc, bool expr, const std::string&
 template <typename... Args>
 inline void assertf(const SourceLocation& loc, bool expr, std::string_view fmt, Args&&... args) {
   if (!expr) {
-    assert_that(loc, false, std::vformat(fmt, std::make_format_args(args...)));
+    assert_that(
+      loc, false, std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...)));
   }
 }
 

@@ -13,23 +13,30 @@
 #include <utils/data/Serialize.hpp>
 
 #include <array>
+#include <deque>
 #include <vector>
 #include <map>
+#include <unordered_map>
+#include <optional>
 #include <cstdint>
-#include <filesystem>
 #include <string>
+#include <variant>
+#include <list>
 #include <bit>
+#include <set>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 
 
 // NOLINTBEGIN (readability-magic-numbers) This test uses some random numbers, there is no value in giving them a name
-// Construction from valid data array
-// Ensures that the class can be constructed from a valid byte array and is ready.
-
-
 
 namespace test {
 
-enum class Id : uint16_t { TestClass_1, TestClass_2 };
+enum class Id : uint16_t {
+  TestClass_1,
+  TestClass_2
+};  // NOLINT (performance-enum-size) its uint16_t in the Header
 
 class TestClass_1 : public serialize::Serializable {
 
@@ -40,7 +47,7 @@ class TestClass_1 : public serialize::Serializable {
   TestClass_1()
       : serialize::Serializable(VERSION, ID) {};
 
-  // Make members public for easy construction in the test
+  // NOLINTBEGIN (misc-non-private-member-variables-in-classes) Make members public for easy construction in the test
   bool a_bool{};
   int8_t a_int8{};
   uint16_t a_uint16{};
@@ -48,21 +55,22 @@ class TestClass_1 : public serialize::Serializable {
   uint64_t a_uint64{};
   float a_float{};
   double a_double{};
-  std::string a_string{};
-  std::wstring a_wstring{};
+  std::string a_string;
+  std::wstring a_wstring;
   std::optional<int32_t> a_optional{};
   std::variant<int32_t, std::string> a_variant{};
   std::pair<int32_t, uint32_t> a_pair{};
-  std::vector<int32_t> a_vector{};
-  std::list<std::string> a_list{};
-  std::deque<float> a_deque{};
+  std::vector<int32_t> a_vector;
+  std::list<std::string> a_list;
+  std::deque<float> a_deque;
   std::array<int32_t, 3> a_array{};
-  std::map<std::string, int32_t> a_map{};
-  std::unordered_map<int32_t, std::string> a_umap{};
-  std::set<int32_t> a_set{};
-  std::unordered_set<std::string> a_uset{};
-  std::tuple<int32_t, std::string> a_tuple{};
+  std::map<std::string, int32_t> a_map;
+  std::unordered_map<int32_t, std::string> a_umap;
+  std::set<int32_t> a_set;
+  std::unordered_set<std::string> a_uset;
+  std::tuple<int32_t, std::string> a_tuple;
   std::size_t a_size{};
+  // NOLINTEND (misc-non-private-member-variables-in-classes)
 
  private:
   bool serializeClass(serialize::BinaryDataWriter& writer) const override {
@@ -154,7 +162,7 @@ TEST_CASE("Test serialization deserialization") {
   testClass1.a_tuple     = std::make_tuple(99, std::string("tuple"));
   testClass1.a_size      = static_cast<std::size_t>(123456);
 
-  TestClass_2 testClass2(testClass1);
+  const TestClass_2 testClass2(testClass1);
   const std::vector<uint8_t> raw_data_big_endian{
     1,   16,  23,  107, 0,   1,   1,   6,   0,   0,   0,   0,   0,   0,   1,
     111, 0,   0,   1,   154, 250, 222, 205, 100, 89,  222, 16,  156, 0,   0,
@@ -227,7 +235,7 @@ TEST_CASE("Test serialization deserialization") {
   */
 
   // deserialize
-  serialize::BinaryDataReader rdr_native(data_native, std::endian::native);
+  const serialize::BinaryDataReader rdr_native(data_native, std::endian::native);
 
   /*
   serialize::Header h1,h2;
@@ -271,17 +279,17 @@ TEST_CASE("Test serialization deserialization") {
   checkClassEqual(deserialized_native);
 
   // extract class payload from raw_data_little_endian buffer
-  serialize::BinaryDataReader rdr_little(raw_data_little_endian, std::endian::little);
+  const serialize::BinaryDataReader rdr_little(raw_data_little_endian, std::endian::little);
   TestClass_2 deserialized_liottle;
   REQUIRE(rdr_little.readNext(&deserialized_liottle));
   checkClassEqual(deserialized_liottle);
 
   // extract class payload from raw_data_big_endian buffer
-  serialize::BinaryDataReader rdr_big(raw_data_big_endian, std::endian::big);
+  const serialize::BinaryDataReader rdr_big(raw_data_big_endian, std::endian::big);
   TestClass_2 deserialized_big;
   REQUIRE(rdr_big.readNext(&deserialized_big));
 
   checkClassEqual(deserialized_big);
 }
 
-// NOLINTEND(readability-magic-numbers)
+// NOLINTEND (readability-magic-numbers)
