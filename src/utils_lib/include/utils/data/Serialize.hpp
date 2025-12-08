@@ -48,9 +48,11 @@ class SystemFingerprint {
   // 3 : sizeof(long) >= 8
   // 4 : long long is 64-bit
   // remaining bits reserved for future use
+ private:
   std::bitset<BITS> m_fingerprint;
   std::uint64_t m_size_hash{};
 
+ public:
   using CanonicalSize_t = uint64_t;
 
 

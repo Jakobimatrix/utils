@@ -793,11 +793,12 @@ class BinaryDataReader : public BinaryDataBuffer {
     } else {
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(src[i]) << (i * SIZE_BYTE);
+          bits |= static_cast<IntType>(static_cast<unsigned int>(src[i]) << (i * SIZE_BYTE));
         }
       } else {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(src[i]) << ((sizeof(T) - 1 - i) * SIZE_BYTE);
+          bits |= static_cast<IntType>(static_cast<unsigned int>(src[i])
+                                       << ((sizeof(T) - 1 - i) * SIZE_BYTE));
         }
       }
     }
