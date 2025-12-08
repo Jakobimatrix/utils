@@ -59,7 +59,7 @@ inline void callFilesystemFunctions(serialize::BinaryDataReader& data) noexcept 
 
 extern "C" int LLVMFuzzerTestOneInput(const unsigned char* binary_data, unsigned long size) {
 
-  util::BinaryDataInterpreter data{binary_data, static_cast<size_t>(size)};
+  serialize::BinaryDataReader data{binary_data, static_cast<size_t>(size)};
   callFilesystemFunctions(data);
   return 0;
 }

@@ -27,9 +27,6 @@ namespace {
  * @param size Size of the Data.
  */
 constexpr void callSearchAndReplace(serialize::BinaryDataReader& data) {
-  const std::vector<uint8_t> start_marker = {255, 0, 255, 0};
-  const std::vector<uint8_t> end_marker   = {0, 0, 0, 0};
-
   std::vector<std::string> extracted_strings;
 
   // Try to extract three strings
