@@ -243,9 +243,11 @@ inline void log_message(const char* level, const SourceLocation& loc, const std:
 // fmt-style logging using std::vformat (format string can be runtime or literal)
 #include <string_view>
 template <typename... Args>
-inline void logf(const char* level, const SourceLocation& loc, std::string_view fmt, Args&&... args) {
-  log_message(
-    level, loc, std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...)));
+inline void logf(const char* level,
+                 const SourceLocation& loc,
+                 std::string_view fmt,
+                 const Args&... args) {
+  log_message(level, loc, std::vformat(fmt, std::make_format_args(args...)));
 }
 
 // Debug
@@ -253,8 +255,8 @@ inline void debug(const SourceLocation& loc, const std::string& msg) {
   log_message("[DEBUG]", loc, msg);
 }
 template <typename... Args>
-inline void debugf(const SourceLocation& loc, std::string_view fmt, Args&&... args) {
-  logf("[DEBUG]", loc, fmt, std::forward<Args>(args)...);
+inline void debugf(const SourceLocation& loc, std::string_view fmt, const Args&... args) {
+  logf("[DEBUG]", loc, fmt, args...);
 }
 
 // Warning
@@ -265,13 +267,13 @@ inline void warning(const SourceLocation& loc, const std::string& msg) {
               msg);
 }
 template <typename... Args>
-inline void warningf(const SourceLocation& loc, std::string_view fmt, Args&&... args) {
+inline void warningf(const SourceLocation& loc, std::string_view fmt, const Args&... args) {
   logf(console::PrettyConsole<console::Color::Orange, console::Style::Bold>(
          "[WARN]")
          .c_str(),
        loc,
        fmt,
-       std::forward<Args>(args)...);
+       args...);
 }
 
 // Error
@@ -280,12 +282,12 @@ inline void error(const SourceLocation& loc, const std::string& msg) {
     console::PrettyConsole<console::Color::Red, console::Style::Bold>("[ERROR]").c_str(), loc, msg);
 }
 template <typename... Args>
-inline void errorf(const SourceLocation& loc, std::string_view fmt, Args&&... args) {
+inline void errorf(const SourceLocation& loc, std::string_view fmt, const Args&... args) {
   logf(
     console::PrettyConsole<console::Color::Red, console::Style::Bold>("[ERROR]").c_str(),
     loc,
     fmt,
-    std::forward<Args>(args)...);
+    args...);
 }
 
 // Assert
@@ -302,10 +304,9 @@ inline void assert_that(const SourceLocation& loc, bool expr, const std::string&
 }
 
 template <typename... Args>
-inline void assertf(const SourceLocation& loc, bool expr, std::string_view fmt, Args&&... args) {
+inline void assertf(const SourceLocation& loc, bool expr, std::string_view fmt, const Args&... args) {
   if (!expr) {
-    assert_that(
-      loc, false, std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...)));
+    assert_that(loc, false, std::vformat(fmt, std::make_format_args(args...)));
   }
 }
 
