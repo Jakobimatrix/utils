@@ -10,6 +10,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cassert>
 #include <span>
 #include <type_traits>
 #include <vector>
@@ -76,14 +77,35 @@ class BinaryDataBuffer {
   }
 
   /**
-   * @brief Returns a span of the rad only buffer.
+   * @brief Returns a span which size is known at compiletime of the read only buffer. !THIS IF A DANGEROUS FUNKTION! Always check available size of the buffer first. If not enough buffer is available, nasal deamons might appear.
+   * @tparam size The size of the requested buffer.
+   * @param start The start bit.
+   * @return The buffer span with compiletime known size. If invalid start/length given, undefined behaviour!
+   */
+  template <size_t size>
+  [[nodiscard]] std::span<const uint8_t, size> getBuffer(size_t start) const {
+    const size_t end = start + size;
+    if (end >= m_buffer.size() || end < start) {
+      assert(false &&
+             "Not enough data available. Harden your funktion!: You need to "
+             "check with .size() first if enough data is available!");
+    }
+    return {&m_buffer[start], &m_buffer[start + size]};
+  }
+
+
+  /**
+   * @brief Returns a span of the read only buffer.
    * @param start The start bit.
    * @param length The size to read.
    * @return The buffer span. If invalid start/length given, an empty span is returned.
-   */
+   * */
   [[nodiscard]] std::span<const uint8_t> getBuffer(size_t start, size_t length) const {
     const size_t end = start + length;
     if (end >= m_buffer.size() || end < start) {
+      assert(false &&
+             "Not enough data available. Harden your funktion!: You need to "
+             "check with .size() first if enough data is available!");
       return {};
     }
     return {&m_buffer[start], &m_buffer[start + length]};

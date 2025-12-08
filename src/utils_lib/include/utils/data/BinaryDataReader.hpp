@@ -26,6 +26,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <system_error>
 #include <string>
 #include <tuple>
@@ -772,9 +773,9 @@ class BinaryDataReader : public BinaryDataBuffer {
       return false;
     }
 
-    // Use span and iterators to avoid pointer arithmetic
-    auto begin = m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor);
-    std::span<const uint8_t> src(begin, sizeof(T));
+    // Use span (to avoid raw pointer arithmetic) with static extent for compile-time optimization
+    const auto begin = m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor);
+    const std::span<const uint8_t, sizeof(T)> src(begin, sizeof(T));
 
     m_cursor += sizeof(T);
 
@@ -793,12 +794,14 @@ class BinaryDataReader : public BinaryDataBuffer {
     } else {
       if (getEndian() == std::endian::little) {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(static_cast<unsigned int>(src[i]) << (i * SIZE_BYTE));
+          // bits |= static_cast<IntType>(static_cast<unsigned int>(src[i]) << (i * SIZE_BYTE));
+          bits |= static_cast<IntType>(src[i]) << (i * SIZE_BYTE);
         }
       } else {
         for (size_t i = 0; i < sizeof(T); ++i) {
-          bits |= static_cast<IntType>(static_cast<unsigned int>(src[i])
-                                       << ((sizeof(T) - 1 - i) * SIZE_BYTE));
+          bits |= static_cast<IntType>(src[i]) << ((sizeof(T) - 1 - i) * SIZE_BYTE);
+          // bits |= static_cast<IntType>(static_cast<unsigned int>(src[i])
+          //                              << ((sizeof(T) - 1 - i) * SIZE_BYTE));
         }
       }
     }
@@ -816,7 +819,7 @@ class BinaryDataReader : public BinaryDataBuffer {
     if (!hasDataLeft(1)) {
       return false;
     }
-    std::span<const uint8_t> src(
+    const std::span<const uint8_t, 1> src(
       m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor), 1);
     m_cursor += 1;
     *value    = (src[0] != 0);

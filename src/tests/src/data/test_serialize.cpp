@@ -162,6 +162,31 @@ TEST_CASE("Test serialization deserialization") {
   testClass1.a_tuple     = std::make_tuple(99, std::string("tuple"));
   testClass1.a_size      = static_cast<std::size_t>(123456);
 
+  auto checkClassEqual = [&testClass1](const TestClass_2& testClass) {
+    REQUIRE(testClass.getClass().a_array == testClass1.a_array);
+    REQUIRE(testClass.getClass().a_bool == testClass1.a_bool);
+    REQUIRE(testClass.getClass().a_int8 == testClass1.a_int8);
+    REQUIRE(testClass.getClass().a_uint16 == testClass1.a_uint16);
+    REQUIRE(testClass.getClass().a_int32 == testClass1.a_int32);
+    REQUIRE(testClass.getClass().a_uint64 == testClass1.a_uint64);
+    REQUIRE(testClass.getClass().a_float == testClass1.a_float);
+    REQUIRE(testClass.getClass().a_double == testClass1.a_double);
+    REQUIRE(testClass.getClass().a_string == testClass1.a_string);
+    REQUIRE(testClass.getClass().a_wstring == testClass1.a_wstring);
+    REQUIRE(testClass.getClass().a_optional == testClass1.a_optional);
+    REQUIRE(testClass.getClass().a_variant == testClass1.a_variant);
+    REQUIRE(testClass.getClass().a_pair == testClass1.a_pair);
+    REQUIRE(testClass.getClass().a_vector == testClass1.a_vector);
+    REQUIRE(testClass.getClass().a_list == testClass1.a_list);
+    REQUIRE(testClass.getClass().a_deque == testClass1.a_deque);
+    REQUIRE(testClass.getClass().a_map == testClass1.a_map);
+    REQUIRE(testClass.getClass().a_umap == testClass1.a_umap);
+    REQUIRE(testClass.getClass().a_set == testClass1.a_set);
+    REQUIRE(testClass.getClass().a_uset == testClass1.a_uset);
+    REQUIRE(testClass.getClass().a_tuple == testClass1.a_tuple);
+    REQUIRE(testClass.getClass().a_size == testClass1.a_size);
+  };
+
   const TestClass_2 testClass2(testClass1);
   const std::vector<uint8_t> raw_data_big_endian{
     1,   16,  23,  107, 0,   1,   1,   6,   0,   0,   0,   0,   0,   0,   1,
@@ -221,62 +246,45 @@ TEST_CASE("Test serialization deserialization") {
     0};
 
   // serialize
-  serialize::BinaryDataWriter writer_native(367, 1024, std::endian::native);
-  REQUIRE(writer_native.writeNext(testClass2));
-  REQUIRE(writer_native.setWritingFinished(true));
+  serialize::BinaryDataWriter writer_big(367, 1024, std::endian::big);
+  serialize::BinaryDataWriter writer_little(367, 1024, std::endian::little);
+  REQUIRE(writer_little.writeNext(testClass2));
+  REQUIRE(writer_big.writeNext(testClass2));
+  REQUIRE(writer_little.setWritingFinished(true));
+  REQUIRE(writer_big.setWritingFinished(true));
 
-  const std::vector<uint8_t> data_native = std::move(writer_native.releaseBuffer());
+  const std::vector<uint8_t> serialized_big = std::move(writer_big.releaseBuffer());
+  const std::vector<uint8_t> serialized_little =
+    std::move(writer_little.releaseBuffer());
 
   /*
-  for(uint8_t dieda : data_native){
+  for(uint8_t dieda : serialized_big){
     std::cerr << static_cast<short>(dieda) << ", ";
   }
   std::cerr << std::endl;
   */
 
   // deserialize
-  const serialize::BinaryDataReader rdr_native(data_native, std::endian::native);
+  const serialize::BinaryDataReader reader_big(serialized_big, std::endian::big);
+  const serialize::BinaryDataReader reader_little(serialized_little, std::endian::little);
 
   /*
   serialize::Header h1,h2;
-  REQUIRE(rdr_native.readNext(&h1));
-  REQUIRE(rdr_native.readNext(&h2));
+  REQUIRE(reader_big.readNext(&h1));
+  REQUIRE(reader_big.readNext(&h2));
   std::cerr << h1 << std::endl;
   std::cerr << h2 << std::endl;
 
-  REQUIRE(rdr_native.setCursorToStart)
+  REQUIRE(reader_big.setCursorToStart)
   */
 
-  TestClass_2 deserialized_native;
-  const bool serializedSuccess{rdr_native.readNext(&deserialized_native)};
-  REQUIRE(serializedSuccess);
+  TestClass_2 deserialized_roundtrip_big;
+  TestClass_2 deserialized_roundtrip_little;
+  REQUIRE(reader_big.readNext(&deserialized_roundtrip_big));
+  REQUIRE(reader_little.readNext(&deserialized_roundtrip_little));
 
-  auto checkClassEqual = [&testClass1](const TestClass_2& testClass) {
-    REQUIRE(testClass.getClass().a_array == testClass1.a_array);
-    REQUIRE(testClass.getClass().a_bool == testClass1.a_bool);
-    REQUIRE(testClass.getClass().a_int8 == testClass1.a_int8);
-    REQUIRE(testClass.getClass().a_uint16 == testClass1.a_uint16);
-    REQUIRE(testClass.getClass().a_int32 == testClass1.a_int32);
-    REQUIRE(testClass.getClass().a_uint64 == testClass1.a_uint64);
-    REQUIRE(testClass.getClass().a_float == testClass1.a_float);
-    REQUIRE(testClass.getClass().a_double == testClass1.a_double);
-    REQUIRE(testClass.getClass().a_string == testClass1.a_string);
-    REQUIRE(testClass.getClass().a_wstring == testClass1.a_wstring);
-    REQUIRE(testClass.getClass().a_optional == testClass1.a_optional);
-    REQUIRE(testClass.getClass().a_variant == testClass1.a_variant);
-    REQUIRE(testClass.getClass().a_pair == testClass1.a_pair);
-    REQUIRE(testClass.getClass().a_vector == testClass1.a_vector);
-    REQUIRE(testClass.getClass().a_list == testClass1.a_list);
-    REQUIRE(testClass.getClass().a_deque == testClass1.a_deque);
-    REQUIRE(testClass.getClass().a_map == testClass1.a_map);
-    REQUIRE(testClass.getClass().a_umap == testClass1.a_umap);
-    REQUIRE(testClass.getClass().a_set == testClass1.a_set);
-    REQUIRE(testClass.getClass().a_uset == testClass1.a_uset);
-    REQUIRE(testClass.getClass().a_tuple == testClass1.a_tuple);
-    REQUIRE(testClass.getClass().a_size == testClass1.a_size);
-  };
-
-  checkClassEqual(deserialized_native);
+  checkClassEqual(deserialized_roundtrip_big);
+  checkClassEqual(deserialized_roundtrip_little);
 
   // extract class payload from raw_data_little_endian buffer
   const serialize::BinaryDataReader rdr_little(raw_data_little_endian, std::endian::little);

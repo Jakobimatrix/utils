@@ -20,6 +20,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -100,7 +101,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
 
     if (!value.empty()) {
       auto dest = m_buffer.begin() + static_cast<std::ptrdiff_t>(m_cursor);
-      std::span<uint8_t> dest_span(dest, value.size());
+      const std::span<uint8_t> dest_span(dest, value.size());
       std::memcpy(dest_span.data(), value.data(), value.size());
       m_cursor += value.size();
     }
@@ -443,7 +444,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     }();
 
     const auto begin = m_buffer.begin() + static_cast<std::ptrdiff_t>(m_cursor);
-    const std::span<uint8_t> dest(begin, sizeof(T));
+    const std::span<uint8_t, sizeof(T)> dest(begin, sizeof(T));
 
     constexpr size_t SIZE_BYTE{8};
     constexpr size_t BYTE_MASK{0xFF};
@@ -589,9 +590,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
    */
   template <typename T>
   size_t estimateElementSize(const T& element) noexcept {
-    if constexpr (std::is_trivially_copyable_v<T>) {
-      return sizeof(T);
-    } else if constexpr (std::is_same_v<T, std::string>) {
+    if constexpr (std::is_same_v<T, std::string>) {
       return estimateSize(element);
     } else if constexpr (std::is_same_v<T, std::wstring>) {
       return estimateSize(element);
@@ -605,7 +604,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
       // Other containers
       return estimateContainerSize(element);
     } else {
-      // For other types, make a conservative estimate
+      // For trivial copyable we know, and unknown types make an estimate
       return sizeof(T);
     }
   }
