@@ -38,136 +38,72 @@ namespace serialize {
  * intended to be embedded into serialized data so a reader can detect when
  * the data was produced for a different ABI and react accordingly.
  */
-class SystemFingerprint {
- public:
-  static constexpr std::size_t BITS = 8U;
-  // Bit layout (index => meaning)
-  // 0 : char is signed (1) or unsigned (0)
-  // 1 : sizeof(size_t) >= 8
-  // 2 : sizeof(ptrdiff_t) >= 8
-  // 3 : sizeof(long) >= 8
-  // 4 : long long is 64-bit
-  // remaining bits reserved for future use
- private:
-  std::bitset<BITS> m_fingerprint;
-  std::uint64_t m_size_hash{};
+namespace fingerprint {
+constexpr std::size_t bit_count = 8;
+using fingerprint_t             = std::bitset<bit_count>;
 
- public:
-  using CanonicalSize_t = uint64_t;
+// bit indices
+constexpr std::size_t BIT_PTR_WIDTH       = 0;
+constexpr std::size_t BIT_LP64            = 1;
+constexpr std::size_t BIT_LLP64           = 2;
+constexpr std::size_t BIT_WCHAR32         = 3;
+constexpr std::size_t BIT_LONG_DOUBLE_GT  = 4;
+constexpr std::size_t BIT_X87_LONG_DOUBLE = 5;
+constexpr std::size_t BIT_BITFIELD_MSVC   = 6;
+constexpr std::size_t BIT_ENUM_INT        = 7;
 
+enum class test_enum { A, B };
 
-  constexpr SystemFingerprint() noexcept
-      : m_fingerprint(getFingerprint()),
-        m_size_hash(buildSizeHash()) {}
-
-
-  static constexpr unsigned long long getFingerprint() noexcept {
-    // char signedness
-    int fingerprint{};
-    fingerprint = static_cast<int>(std::is_signed_v<char>);
-
-    // size_t, ptrdiff_t, long widths
-    fingerprint |= static_cast<int>(sizeof(std::size_t) >= 8) << 1;
-    fingerprint |= static_cast<int>(sizeof(std::ptrdiff_t) >= 8) << 2;
-    fingerprint |= static_cast<int>(sizeof(long) >= 8) << 3;
-    // long long width
-    fingerprint |= static_cast<int>(sizeof(long long) >= 8) << 4;
-    return static_cast<unsigned long long>(fingerprint);
-  }
-
-  // Canonical wire sizes for types we normalize on the wire. If a local
-  // type's sizeof() matches the canonical size, it is safe to serialize
-  // using the canonical representation without data loss.
-  static constexpr std::size_t CANONICAL_SIZE_char      = 1;
-  static constexpr std::size_t CANONICAL_SIZE_short     = 2;
-  static constexpr std::size_t CANONICAL_SIZE_int       = 4;
-  static constexpr std::size_t CANONICAL_SIZE_long      = 8;
-  static constexpr std::size_t CANONICAL_SIZE_long_long = 8;
-  static constexpr std::size_t CANONICAL_SIZE_float     = 4;
-  static constexpr std::size_t CANONICAL_SIZE_double    = 8;
-  static constexpr std::size_t CANONICAL_SIZE_size_t    = 8;
-  static constexpr std::size_t CANONICAL_SIZE_ptrdiff_t = 8;
-
-  // We treat `long double` specially: we do NOT provide a canonical wire
-  // representation here. Instead we record its size in the size-hash so a
-  // reader can detect mismatches and refuse deserialization if required.
-
-  // constexpr helper: is the given type's sizeof() equal to our canonical size?
-  template <typename T>
-  static consteval bool isCanonicalType() noexcept {
-    if constexpr (std::is_same_v<T, char>) {
-      return sizeof(T) == CANONICAL_SIZE_char;
-    } else if constexpr (std::is_same_v<T, short>) {
-      return sizeof(T) == CANONICAL_SIZE_short;
-    } else if constexpr (std::is_same_v<T, int>) {
-      return sizeof(T) == CANONICAL_SIZE_int;
-    } else if constexpr (std::is_same_v<T, long>) {
-      return sizeof(T) == CANONICAL_SIZE_long;
-    } else if constexpr (std::is_same_v<T, long long>) {
-      return sizeof(T) == CANONICAL_SIZE_long_long;
-    } else if constexpr (std::is_same_v<T, float>) {
-      return sizeof(T) == CANONICAL_SIZE_float;
-    } else if constexpr (std::is_same_v<T, double>) {
-      return sizeof(T) == CANONICAL_SIZE_double;
-    } else if constexpr (std::is_same_v<T, std::size_t>) {
-      return sizeof(T) == CANONICAL_SIZE_size_t;
-    } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
-      return sizeof(T) == CANONICAL_SIZE_ptrdiff_t;
-    } else if constexpr (std::is_same_v<T, long double>) {
-      // long double is intentionally non-canonical — exact round-trip only
-      // guaranteed when the size-hash matches the writer.
-      return false;
-    } else {
-      // For other types, conservatively return whether size matches the
-      // platform sizeof (i.e., always true) so they are treated as canonical.
-      return true;
-    }
-  }
-
-  // Build a compact, stable hash from the sizeof() values of types that may
-  // differ across platforms. This is constexpr and deterministic; readers
-  // compute the same value and compare with the stored hash to detect
-  // incompatibilities. We use FNV-1a 64-bit over the size-bytes.
-  constexpr static std::uint64_t buildSizeHash() noexcept {
-    constexpr std::array<std::uint8_t, 10> sizes = {
-      static_cast<std::uint8_t>(sizeof(char)),
-      static_cast<std::uint8_t>(sizeof(short)),
-      static_cast<std::uint8_t>(sizeof(int)),
-      static_cast<std::uint8_t>(sizeof(long)),
-      static_cast<std::uint8_t>(sizeof(long long)),
-      static_cast<std::uint8_t>(sizeof(float)),
-      static_cast<std::uint8_t>(sizeof(double)),
-      static_cast<std::uint8_t>(sizeof(long double)),
-      static_cast<std::uint8_t>(sizeof(std::size_t)),
-      static_cast<std::uint8_t>(sizeof(std::ptrdiff_t))};
-    std::uint64_t size_hash = 14695981039346656037ULL;
-    for (std::size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
-      size_hash ^= static_cast<std::uint64_t>(sizes[i]);
-      size_hash *= 1099511628211ULL;
-    }
-    return size_hash;
-  }
-
-  [[nodiscard]] std::string interpret() const noexcept {
-    std::ostringstream ss;
-    ss << "char is " << (m_fingerprint[0] ? "signed" : "unsigned") << "; ";
-    if (m_fingerprint[1]) {
-      ss << "wchar_t = 16-bit; ";
-    } else if (m_fingerprint[2]) {
-      ss << "wchar_t = 32-bit; ";
-    } else {
-      ss << "wchar_t = " << (sizeof(wchar_t) * 8) << "-bit; ";
-    }
-    ss << "size_t = " << (m_fingerprint[3] ? ">=64-bit" : "<64-bit") << "; ";
-    ss << "ptrdiff_t = " << (m_fingerprint[4] ? ">=64-bit" : "<64-bit") << "; ";
-    ss << "long = " << (m_fingerprint[5] ? ">=64-bit" : "<64-bit") << "; ";
-    ss << "pointer = " << (m_fingerprint[6] ? ">=64-bit" : "<64-bit") << "; ";
-    ss << "endianness = " << (m_fingerprint[7] ? "little" : "big") << "; ";
-    ss << "wchar_t signed = " << (m_fingerprint[8] ? "true" : "false") << "; ";
-    ss << "long long = " << (m_fingerprint[9] ? ">=64-bit" : "<64-bit");
-    return ss.str();
-  }
+struct bitfield_test {
+  unsigned a : 3;
+  unsigned b : 5;
 };
+
+inline fingerprint_t make() {
+  fingerprint_t fp{};
+
+  constexpr std::size_t PTR_WIDTH_64       = 8;
+  constexpr std::size_t LONG_64            = 8;
+  constexpr std::size_t LONG_32            = 4;
+  constexpr std::size_t WCHAR_32           = 4;
+  constexpr std::size_t BITFIELD_FULL_SIZE = sizeof(unsigned);
+  constexpr std::size_t X87_SIZE_1         = 10;
+  constexpr std::size_t X87_SIZE_2         = 16;
+
+  fp[BIT_PTR_WIDTH] = (sizeof(void*) >= PTR_WIDTH_64);  // pointer width >=64
+  fp[BIT_LP64]      = (sizeof(long) == LONG_64);        // LP64
+  fp[BIT_LLP64] = (sizeof(void*) == PTR_WIDTH_64 && sizeof(long) == LONG_32);  // LLP64
+  fp[BIT_WCHAR32]        = (sizeof(wchar_t) == WCHAR_32);
+  fp[BIT_LONG_DOUBLE_GT] = (sizeof(long double) > sizeof(double));
+  fp[BIT_X87_LONG_DOUBLE] =
+    (sizeof(long double) == X87_SIZE_1 || sizeof(long double) == X87_SIZE_2);  // x87-style
+  fp[BIT_BITFIELD_MSVC] =
+    (sizeof(bitfield_test) == BITFIELD_FULL_SIZE);  // MSVC packing heuristic
+  fp[BIT_ENUM_INT] = std::is_same_v<std::underlying_type_t<test_enum>, int>;
+
+  return fp;
+}
+
+inline fingerprint_t value = make();
+
+inline void explainFingerprint(std::ostream& os, const fingerprint_t& fp) {
+  os << "ABI fingerprint (" << bit_count << " bits)\n";
+
+  auto yesno = [&](bool v) { return v ? "yes" : "no"; };
+
+  os << "pointer width >= 64        : " << yesno(fp[BIT_PTR_WIDTH]) << "\n";
+  os << "LP64 model                 : " << yesno(fp[BIT_LP64]) << "\n";
+  os << "LLP64 model                : " << yesno(fp[BIT_LLP64]) << "\n";
+  os << "wchar_t is 32-bit          : " << yesno(fp[BIT_WCHAR32]) << "\n";
+  os << "long double > double       : " << yesno(fp[BIT_LONG_DOUBLE_GT]) << "\n";
+  os << "x87-style long double      : " << yesno(fp[BIT_X87_LONG_DOUBLE]) << "\n";
+  os << "MSVC-like bitfield packing : " << yesno(fp[BIT_BITFIELD_MSVC]) << "\n";
+  os << "enum underlying == int     : " << yesno(fp[BIT_ENUM_INT]) << "\n";
+
+  os << "raw bits (MSB->LSB): " << fp.to_string();
+  os << '\n';
+}
+}  // namespace fingerprint
 
 
 class Flags {
@@ -248,7 +184,8 @@ class Header {
   uint16_t m_id{NO_ID};
   uint8_t m_version{NO_VERSION};
   Flags m_flags;
-  uint64_t m_size{0};
+  std::bitset<8> m_fingerprint{fingerprint::make()};
+  uint32_t m_size{0};
   int64_t m_timestamp{NO_TIMESTAMP};
 
  public:
@@ -257,17 +194,18 @@ class Header {
   static constexpr uint16_t NO_ID       = std::numeric_limits<uint16_t>::max();
   static constexpr uint8_t NO_VERSION   = 0;
 
-  Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t checksum, int64_t timestamp);
-  Header(uint16_t id, uint8_t version, uint64_t size, Flags flags);
+  Header(uint16_t id, uint8_t version, uint32_t size, Flags flags, int32_t checksum, int64_t timestamp);
+  Header(uint16_t id, uint8_t version, uint32_t size, Flags flags);
   Header() = default;
 
   [[nodiscard]] uint16_t getId() const { return m_id; }
   [[nodiscard]] uint8_t getVersion() const { return m_version; }
-  [[nodiscard]] uint64_t getSize() const { return m_size; }
+  [[nodiscard]] uint32_t getSize() const { return m_size; }
   [[nodiscard]] int32_t getChecksum() const { return m_checksum; }
   [[nodiscard]] int64_t getTimestamp() const { return m_timestamp; }
+  [[nodiscard]] std::bitset<8> getFingerprint() const { return m_fingerprint; }
   [[nodiscard]] const Flags& getFlags() const noexcept { return m_flags; }
-  static constexpr size_t BYTES          = 4 + 2 + 1 + 1 + 8 + 8;
+  static constexpr size_t BYTES          = 4 + 2 + 1 + 1 + 4 + 8;
   static constexpr size_t CHECKSUM_BYTES = 4;
 
   int64_t static nowInMs() {
@@ -332,8 +270,9 @@ class Header {
        << "    endian: "
        << (header.m_flags.getEndian() == std::endian::little ? "little" : "big") << "\n"
        << "    control hash: " << (header.m_flags.getControlHash() ? "enabled" : "disabled")
-       << "\n"
-       << "    timestamp: " << (header.m_flags.getTime() ? "enabled" : "disabled") << "\n"
+       << "\n";
+    fingerprint::explainFingerprint(os, header.m_fingerprint);
+    os << "\n    timestamp: " << (header.m_flags.getTime() ? "enabled" : "disabled") << "\n"
        << "    compression: ";
     switch (header.m_flags.getCompression()) {
       case Flags::Compression::None:

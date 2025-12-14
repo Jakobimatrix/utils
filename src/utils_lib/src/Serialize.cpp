@@ -27,7 +27,7 @@ bool Flags::deserialize(const BinaryDataReader& reader) {
 }
 
 // NOLINTBEGIN (bugprone-easily-swappable-parameters) and I am sorry for this
-Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t checksum, int64_t timestamp)
+Header::Header(uint16_t id, uint8_t version, uint32_t size, Flags flags, int32_t checksum, int64_t timestamp)
     : m_checksum(checksum),
       m_id(id),
       m_version(version),
@@ -35,20 +35,22 @@ Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags, int32_t
       m_size(size),
       m_timestamp(timestamp) {}
 
-Header::Header(uint16_t id, uint8_t version, uint64_t size, Flags flags)
+Header::Header(uint16_t id, uint8_t version, uint32_t size, Flags flags)
     : Header(id, version, size, flags, NO_CHECKSUM, NO_TIMESTAMP) {}
 
 
 bool Header::serialize(BinaryDataWriter& writer) const {
   return writer.writeNext(m_checksum) && writer.writeNext(m_id) &&
          writer.writeNext(m_version) && writer.writeNext(m_flags) &&
-         writer.writeNext(m_size) && writer.writeNext(m_timestamp);
+         writer.writeNext(m_fingerprint) && writer.writeNext(m_size) &&
+         writer.writeNext(m_timestamp);
 }
 
 bool Header::deserialize(const BinaryDataReader& reader) {
   return reader.readNext(&m_checksum) && reader.readNext(&m_id) &&
          reader.readNext(&m_version) && reader.readNext(&m_flags) &&
-         reader.readNext(&m_size) && reader.readNext(&m_timestamp);
+         reader.readNext(&m_fingerprint) && reader.readNext(&m_size) &&
+         reader.readNext(&m_timestamp);
 }
 
 Serializable::Serializable(uint8_t version, uint16_t id)
@@ -85,7 +87,7 @@ bool Serializable::serialize(BinaryDataWriter& writer) const {
   flags.setControlHash(true);
   flags.setTime(true);
   const Header header{
-    m_id, m_version, static_cast<uint64_t>(class_size), flags, Header::NO_CHECKSUM, Header::nowInMs()};
+    m_id, m_version, static_cast<uint32_t>(class_size), flags, Header::NO_CHECKSUM, Header::nowInMs()};
 
   if (!writer.writeNext(header)) {
     return false;
@@ -152,28 +154,25 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
     return false;
   }
 
-  std::size_t dataSizeExtracted{0};
-  if constexpr (sizeof(std::size_t) != sizeof(BinaryDataBuffer::SizeType)) {
-    const BinaryDataBuffer::SizeType dataSize{header_deseriaized.getSize()};
-    if (dataSize > static_cast<BinaryDataBuffer::SizeType>(
-                     std::numeric_limits<std::size_t>::max())) {
-      dbg::errorf(
-        CURRENT_SOURCE_LOCATION,
-        "You are attempting to deserialize data that was serialized on a "
-        "64-bit system, but your current system is 32-bit. The size of the "
-        "data exceeds what can be represented or allocated in a 32-bit address "
-        "space, so it cannot be loaded into memory. Please ensure that the "
-        "data size is compatible with your system architecture.",
-        header_deseriaized.getSize(),
-        reader.getNumUnreadBytes());
+  if (header_deseriaized.getFlags().getStrictMode()) {
+    if (header_deseriaized.getFingerprint() != fingerprint::make()) {
+      dbg::errorf(CURRENT_SOURCE_LOCATION,
+                  "The fingerprint of the deserialized data: {} "
+                  "does not match the system fingerprint: {} ! You can disable "
+                  "this check in the header flags with setStrictMode(false), "
+                  "but you need to make sure to only use fixed types! int32_t, "
+                  "uint64_t etc. Dont use size_t, w_char and such.",
+                  header_deseriaized.getFingerprint().to_string(),
+                  fingerprint::make().to_string());
       return false;
     }
-    dataSizeExtracted = static_cast<std::size_t>(dataSize);
-  } else {
-    dataSizeExtracted = header_deseriaized.getSize();
   }
 
-  if (!reader.hasDataLeft(dataSizeExtracted)) {
+
+  const uint32_t dataSize{header_deseriaized.getSize()};
+
+
+  if (!reader.hasDataLeft(static_cast<size_t>(dataSize))) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected {} byts but got only {}",
                 header_deseriaized.getSize(),
@@ -195,10 +194,10 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
   const size_t cursor_before_header = cursor_before_class - Header::BYTES;
   const size_t cursor_after_checksum = cursor_before_header + Header::CHECKSUM_BYTES;
 
-  if (dataSizeExtracted != readBytes) {
+  if (static_cast<size_t>(dataSize) != readBytes) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected size {} does not match number of read bytes {}",
-                dataSizeExtracted,
+                dataSize,
                 readBytes);
     return false;
   }

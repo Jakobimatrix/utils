@@ -95,7 +95,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
       return false;
     }
 
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
 
@@ -195,7 +195,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename... Ts>
   bool writeNext(const std::variant<Ts...>& value) noexcept {
     const size_t index = value.index();
-    if (!writeNext(index)) {
+    if (!writeSizeInfo(index)) {
       return false;
     }
     return std::visit([this](const auto& v) { return this->writeNext(v); }, value);
@@ -227,7 +227,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& element : value) {
@@ -250,7 +250,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& element : value) {
@@ -273,7 +273,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& element : value) {
@@ -298,7 +298,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& element : value) {
@@ -321,7 +321,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& element : value) {
@@ -345,7 +345,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& [key, val] : value) {
@@ -369,7 +369,7 @@ class BinaryDataWriter : public BinaryDataBuffer {
     if (!resizeIfNeeded(estimated_size)) {
       return false;
     }
-    if (!writeNext(value.size())) {
+    if (!writeSizeInfo(value.size())) {
       return false;
     }
     for (const auto& [key, val] : value) {
@@ -401,19 +401,6 @@ class BinaryDataWriter : public BinaryDataBuffer {
     return true;
   }
 
-
-  /**
-   * @brief Writes info about std::size_t always into a 64 bit type.
-   * @return true if resize was successful or not needed, false if would exceed maxExpectedSize
-   */
-  bool writeNext(std::size_t size) noexcept {
-    if constexpr (sizeof(std::size_t) != sizeof(SizeType)) {
-      return writeNextTrivialDataType(static_cast<SizeType>(size));
-    } else {
-      return writeNextTrivialDataType(size);
-    }
-  }
-
   /**
    * @brief Write a trivially copyable enum value into the buffer in ENDIAN order.
    * @tparam enum type.
@@ -433,28 +420,6 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool writeNext(T value) {
-    return writeNextTrivialDataType(value);
-  }
-
-  /**
-   * @brief Write a serializable object into the buffer.
-   * @tparam SerializableObject A object that implements bool serialize(BinaryDataWriter& writer);
-   * @param value The value to write.
-   */
-  template <typename SerializableObject>
-  bool writeNext(SerializableObject value) {
-    return value.serialize(*this);
-  }
-
- private:
-  /**
-   * @brief Write a trivially copyable scalar value into the buffer in ENDIAN order.
-   * @tparam T Integral or floating-point type.
-   * @param value The value to write.
-   */
-  template <typename T>
-    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
-  bool writeNextTrivialDataType(T value) {
     using IntType =
       std::conditional_t<std::is_floating_point_v<T>,
                          std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
@@ -498,6 +463,30 @@ class BinaryDataWriter : public BinaryDataBuffer {
     m_cursor += sizeof(T);
 
     return true;
+  }
+
+  /**
+   * @brief Write a serializable object into the buffer.
+   * @tparam SerializableObject A object that implements bool serialize(BinaryDataWriter& writer);
+   * @param value The value to write.
+   */
+  template <typename SerializableObject>
+  bool writeNext(SerializableObject value) {
+    return value.serialize(*this);
+  }
+
+ private:
+  /**
+   * @brief makes sure to always use 64 bit for size
+   * @param size The size tor write
+   * @return true if resize was successful or not needed, false if would exceed maxExpectedSize
+   */
+  bool writeSizeInfo(std::size_t size) noexcept {
+    if constexpr (sizeof(std::size_t) == sizeof(SizeType)) {
+      return writeNext(size);
+    } else {
+      return writeNext(static_cast<SizeType>(size));
+    }
   }
 
   /**
