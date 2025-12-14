@@ -79,7 +79,7 @@ class BinaryDataReader : public BinaryDataBuffer {
       return {};
     }
 
-    std::streamsize const size = file.tellg();
+    const auto size = file.tellg();
 
     if (size < 0) {
       error_code = std::make_error_code(std::errc::io_error);
@@ -690,6 +690,19 @@ class BinaryDataReader : public BinaryDataBuffer {
     return {readBegin, readEnd};
   }
 
+
+  // Special-case bool to avoid instantiating make_unsigned<bool>.
+  bool readNext(bool* value) const noexcept {
+    if (!hasDataLeft(1)) {
+      return false;
+    }
+    const std::span<const uint8_t, 1> src(
+      m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor), 1);
+    m_cursor += 1;
+    *value    = (src[0] != 0);
+    return true;
+  }
+
   /**
    * @brief Reads the next bytes as a string of given length.
    * @param value Pointer to the string to store the result.
@@ -728,24 +741,25 @@ class BinaryDataReader : public BinaryDataBuffer {
    * @brief Reads info about std::size_t always from a 64 bit type.
    * @return true if the size could be read and did not overflow.
    */
-  template <typename T>
-  bool readNext(T* size) noexcept
-    requires(std::is_same_v<T, std::size_t> && sizeof(std::size_t) != sizeof(SizeType))
-  {
-    SizeType temp{};
-    if (!readNext(&temp)) {
-      return false;
+  bool readNext(std::size_t* size) noexcept {
+    if constexpr (sizeof(std::size_t) != sizeof(SizeType)) {
+      SizeType temp{};
+      if (!readNext(&temp)) {
+        return false;
+      }
+      if (temp > static_cast<SizeType>(std::numeric_limits<std::size_t>::max())) {
+        dbg::errorf(CURRENT_SOURCE_LOCATION,
+                    "Your data origenates from a 64 bit system! You tried to "
+                    "read a size (64 bit) with value {} but your size type in "
+                    "only 32 bit and overflows!",
+                    temp);
+        return false;
+      }
+      *size = static_cast<std::size_t>(temp);
+      return true;
+    } else {
+      return readNextTrivialDataType(size);
     }
-    if (temp > static_cast<SizeType>(std::numeric_limits<T>::max())) {
-      dbg::errorf(CURRENT_SOURCE_LOCATION,
-                  "Your data origenates from a 64 bit system! You tried to "
-                  "read a size (64 bit) with value {} but your size type in "
-                  "only 32 bit and overflows!",
-                  temp);
-      return false;
-    }
-    *size = static_cast<std::size_t>(temp);
-    return true;
   }
 
   /**
@@ -769,6 +783,30 @@ class BinaryDataReader : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool readNext(T* value) const {
+    return readNextTrivialDataType(value);
+  }
+
+  /**
+   * @brief Read a serializable object from the buffer.
+   * @tparam SerializableObject A object that implements bool deserialize(const BinaryDataReader& reader);
+   * @param value Pointer to the value to store the result.
+   * @return true if successful, false otherwise.
+   */
+  template <typename SerializableObject>
+  bool readNext(SerializableObject* value) const noexcept {
+    return value->deserialize(*this);
+  }
+
+ private:
+  /**
+   * @brief Read a trivially scalar value from the buffer.
+   * @tparam T Integral, floating-point.
+   * @param value Pointer to the value to store the result.
+   * @return true if successful, false otherwise.
+   */
+  template <typename T>
+    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
+  bool readNextTrivialDataType(T* value) const {
     if (!hasDataLeft(sizeof(T))) {
       return false;
     }
@@ -814,38 +852,8 @@ class BinaryDataReader : public BinaryDataBuffer {
     return true;
   }
 
-  // Special-case bool to avoid instantiating make_unsigned<bool>.
-  bool readNext(bool* value) const noexcept {
-    if (!hasDataLeft(1)) {
-      return false;
-    }
-    const std::span<const uint8_t, 1> src(
-      m_buffer.cbegin() + static_cast<std::ptrdiff_t>(m_cursor), 1);
-    m_cursor += 1;
-    *value    = (src[0] != 0);
-    return true;
-  }
 
-  /**
-   * @brief Read a serializable object from the buffer.
-   * @tparam SerializableObject A object that implements bool deserialize(const BinaryDataReader& reader);
-   * @param value Pointer to the value to store the result.
-   * @return true if successful, false otherwise.
-   */
-  template <typename SerializableObject>
-  bool readNext(SerializableObject* value) const noexcept {
-    return value->deserialize(*this);
-  }
 
-  /**
-   * @brief Returns a constant reference to the binaries.
-   * @return The binaries.
-   */
-  [[nodiscard]] const std::vector<uint8_t>& getData() const noexcept {
-    return m_buffer;
-  }
-
- private:
   template <std::size_t I, typename... Ts>
   bool readTupleElement(const BinaryDataReader& reader, std::tuple<Ts...>& tup) const noexcept {
     using Elem = std::tuple_element_t<I, std::tuple<Ts...>>;

@@ -122,6 +122,12 @@ class BinaryDataWriter : public BinaryDataBuffer {
     return false;
   }
 
+  // Special-case bool to avoid instantiating make_unsigned<bool> which is
+  // ill-formed. We encode bool as a single byte (0 or 1).
+  bool writeNext(bool value) {
+    return writeNext<uint8_t>(static_cast<uint8_t>(value));
+  }
+
   /**
    * @brief Writes a std::tuple<Ts...> by writing each element in order.
    * @tparam Ts Types of tuple elements.
@@ -400,11 +406,12 @@ class BinaryDataWriter : public BinaryDataBuffer {
    * @brief Writes info about std::size_t always into a 64 bit type.
    * @return true if resize was successful or not needed, false if would exceed maxExpectedSize
    */
-  template <typename T>
-  bool writeNext(T size) noexcept
-    requires(std::is_same_v<T, std::size_t> && sizeof(std::size_t) != sizeof(SizeType))
-  {
-    return writeNext(static_cast<SizeType>(size));
+  bool writeNext(std::size_t size) noexcept {
+    if constexpr (sizeof(std::size_t) != sizeof(SizeType)) {
+      return writeNextTrivialDataType(static_cast<SizeType>(size));
+    } else {
+      return writeNextTrivialDataType(size);
+    }
   }
 
   /**
@@ -426,6 +433,28 @@ class BinaryDataWriter : public BinaryDataBuffer {
   template <typename T>
     requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   bool writeNext(T value) {
+    return writeNextTrivialDataType(value);
+  }
+
+  /**
+   * @brief Write a serializable object into the buffer.
+   * @tparam SerializableObject A object that implements bool serialize(BinaryDataWriter& writer);
+   * @param value The value to write.
+   */
+  template <typename SerializableObject>
+  bool writeNext(SerializableObject value) {
+    return value.serialize(*this);
+  }
+
+ private:
+  /**
+   * @brief Write a trivially copyable scalar value into the buffer in ENDIAN order.
+   * @tparam T Integral or floating-point type.
+   * @param value The value to write.
+   */
+  template <typename T>
+    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
+  bool writeNextTrivialDataType(T value) {
     using IntType =
       std::conditional_t<std::is_floating_point_v<T>,
                          std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>,
@@ -471,23 +500,6 @@ class BinaryDataWriter : public BinaryDataBuffer {
     return true;
   }
 
-  // Special-case bool to avoid instantiating make_unsigned<bool> which is
-  // ill-formed. We encode bool as a single byte (0 or 1).
-  bool writeNext(bool value) {
-    return writeNext<uint8_t>(static_cast<uint8_t>(value));
-  }
-
-  /**
-   * @brief Write a serializable object into the buffer.
-   * @tparam SerializableObject A object that implements bool serialize(BinaryDataWriter& writer);
-   * @param value The value to write.
-   */
-  template <typename SerializableObject>
-  bool writeNext(SerializableObject value) {
-    return value.serialize(*this);
-  }
-
- private:
   /**
    * @brief Resizes the m_buffer if needed for additional data
    * @param additional_size Size of data to be added
