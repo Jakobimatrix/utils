@@ -152,7 +152,28 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
     return false;
   }
 
-  if (!reader.hasDataLeft(header_deseriaized.getSize())) {
+  std::size_t dataSizeExtracted{0};
+  if constexpr (sizeof(std::size_t) != sizeof(BinaryDataBuffer::SizeType)) {
+    const BinaryDataBuffer::SizeType dataSize{header_deseriaized.getSize()};
+    if (dataSize > static_cast<BinaryDataBuffer::SizeType>(
+                     std::numeric_limits<std::size_t>::max())) {
+      dbg::errorf(
+        CURRENT_SOURCE_LOCATION,
+        "You are attempting to deserialize data that was serialized on a "
+        "64-bit system, but your current system is 32-bit. The size of the "
+        "data exceeds what can be represented or allocated in a 32-bit address "
+        "space, so it cannot be loaded into memory. Please ensure that the "
+        "data size is compatible with your system architecture.",
+        header_deseriaized.getSize(),
+        reader.getNumUnreadBytes());
+      return false;
+    }
+    dataSizeExtracted = static_cast<std::size_t>(dataSize);
+  } else {
+    dataSizeExtracted = header_deseriaized.getSize();
+  }
+
+  if (!reader.hasDataLeft(dataSizeExtracted)) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected {} byts but got only {}",
                 header_deseriaized.getSize(),
@@ -170,14 +191,14 @@ bool Serializable::deserialize(const BinaryDataReader& reader, const Header& hea
 
 
   const size_t cursor_after_class   = reader.getCursor();
-  const uint64_t readBytes          = cursor_after_class - cursor_before_class;
+  const size_t readBytes            = cursor_after_class - cursor_before_class;
   const size_t cursor_before_header = cursor_before_class - Header::BYTES;
   const size_t cursor_after_checksum = cursor_before_header + Header::CHECKSUM_BYTES;
 
-  if (header_deseriaized.getSize() != readBytes) {
+  if (dataSizeExtracted != readBytes) {
     dbg::errorf(CURRENT_SOURCE_LOCATION,
                 "Expected size {} does not match number of read bytes {}",
-                header_deseriaized.getSize(),
+                dataSizeExtracted,
                 readBytes);
     return false;
   }

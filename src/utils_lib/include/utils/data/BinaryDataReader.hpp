@@ -79,15 +79,18 @@ class BinaryDataReader : public BinaryDataBuffer {
       return {};
     }
 
-    const auto size = file.tellg();
+    const std::streampos size = file.tellg();
 
     if (size < 0) {
       error_code = std::make_error_code(std::errc::io_error);
       return {};
     }
+    if (static_cast<uintmax_t>(size) > std::numeric_limits<size_t>::max()) {
+      error_code = std::make_error_code(std::errc::file_too_large);
+      return {};
+    }
 
     file.seekg(0, std::ios::beg);
-
     std::vector<ByteType> buffer(static_cast<size_t>(size));
     if constexpr (std::is_same<char, ByteType>()) {
       if (!file.read(buffer.data(), size)) {
@@ -95,7 +98,8 @@ class BinaryDataReader : public BinaryDataBuffer {
         return {};
       }
     } else {
-      if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      if (!file.read(reinterpret_cast<char*>(buffer.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                     static_cast<std::streamsize>(size))) {
         // reinterpret_cast is required: std::ifstream::read takes char*,
         // and buffer.data() may be uint8_t* / unsigned char*, etc. This cast is safe and idiomatic.
         error_code = std::make_error_code(std::errc::io_error);
