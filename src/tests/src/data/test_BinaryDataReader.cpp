@@ -259,10 +259,10 @@ TEST_CASE("BinaryDataReader: readNext string negative") {
 
 
 
-TEST_CASE("BinaryDataReader: getReadBegin and getData and releaseBuffer") {
+TEST_CASE("BinaryDataReader: getReadBegin and getBuffer and releaseBuffer") {
   const std::array<uint8_t, 4> arr = {1, 2, 3, 4};
   serialize::BinaryDataReader bdi(arr.data(), arr.size(), true, std::endian::little);
-  REQUIRE(bdi.getData().size() == 4);
+  REQUIRE(bdi.getBuffer().size() == 4);
   auto it = bdi.getReadBegin();
   REQUIRE(*it == 1);
   auto buf = bdi.releaseBuffer();

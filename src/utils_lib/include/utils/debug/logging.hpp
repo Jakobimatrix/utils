@@ -207,7 +207,7 @@ struct PrettyConsole {
     GetConsoleScreenBufferInfo(hConsole, &info);
     WORD original = info.wAttributes;
     bool bold     = ((false || ... || (S == Style::Bold)));
-    SetConsoleTextAttribute(hConsole, detail::win32_color(C, bold));
+    SetConsoleTextAttribute(hConsole, console::detail::win32_color(C, bold));
     std::string result = _text;
     SetConsoleTextAttribute(hConsole, original);
     return result;
