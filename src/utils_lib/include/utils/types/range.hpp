@@ -145,7 +145,7 @@ class Range {
   /**
    * Calculates a scaled Value between min and max such that min corresponds to
    * 0 and max corresponds to 1.
-   * You can scale back by using @see bom::Range::scaleBack()
+   * You can scale back by using @see Range::scaleBack()
    * @param value The value to be scaled between min and max.
    * @return The scaled version of the input.
    */
@@ -155,7 +155,7 @@ class Range {
 
   /**
    * Calculates a the Value between min and max given scaledValue wich was scaled between 0 and 1.
-   * @see bom::Range::scale01()
+   * @see Range::scale01()
    * @param scaledValue The value to be scaled between min and max.
    * @return The unscaled version of the input.
    */
